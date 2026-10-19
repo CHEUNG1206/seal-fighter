@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { toFeatures, FEATURE_LENGTH, orderHands } from '../src/features.js';
-import { classify, distance, Stabiliser } from '../src/knn.js';
+import { classify, distance, poseDistance, Stabiliser } from '../src/knn.js';
 import { parseSamples, toJSON, countByLabel } from '../src/samples.js';
 
 // A fake hand: wrist at (x, y), knuckles spread by `size`, fingers by `spread`.
@@ -44,22 +44,53 @@ test('one hand is never close to two hands', () => {
   assert.ok(distance(one, two) > 2);
 });
 
+// A feature vector with every number of the first hand set to `a`, and
+// optionally a second hand set to `b`.
+function vec(a, b = null, offset = [0, 0]) {
+  const f = new Array(FEATURE_LENGTH).fill(0);
+  f.fill(a, 0, 42);
+  if (b !== null) f.fill(b, 42, 84);
+  [f[84], f[85]] = offset;
+  [f[86], f[87]] = [3, b === null ? 0 : 3];
+  return f;
+}
+
 test('knn votes for the nearest label', () => {
   const samples = [
-    ...[0, 0.01, 0.02].map(d => ({ label: 'rat', features: [d, 0] })),
-    ...[5, 5.01].map(d => ({ label: 'tiger', features: [d, 5] })),
+    ...[0, 0.01, 0.02].map(d => ({ label: 'rat', features: vec(d) })),
+    ...[5, 5.01].map(d => ({ label: 'tiger', features: vec(d) })),
   ];
-  const result = classify([0.005, 0], samples, 3);
+  const result = classify(vec(0.005), samples, { k: 3 });
   assert.equal(result.label, 'rat');
   assert.equal(result.confidence, 1);
-  assert.equal(classify([5, 5], samples, 3).label, 'tiger');
+  assert.equal(classify(vec(5), samples, { k: 3 }).label, 'tiger');
   assert.equal(classify(null, samples), null);
-  assert.equal(classify([0, 0], []), null);
+  assert.equal(classify(vec(0), []), null);
 });
 
 test('k larger than the sample count still works', () => {
-  const result = classify([0, 0], [{ label: 'rat', features: [1, 0] }], 5);
-  assert.deepEqual(result, { label: 'rat', confidence: 1, distance: 1 });
+  const result = classify(vec(0), [{ label: 'rat', features: vec(1) }], { k: 5 });
+  assert.equal(result.label, 'rat');
+  assert.equal(result.confidence, 1);
+});
+
+test('swapped hands are the same pose', () => {
+  assert.ok(poseDistance(vec(1, 2, [1, 0]), vec(2, 1, [-1, 0])) < 1e-9);
+});
+
+test('one detected hand matches the closer hand of a two-hand pose', () => {
+  const two = vec(1, 5);
+  assert.ok(Math.abs(poseDistance(vec(1), two) - 1) < 1e-9, 'only the hand-count penalty');
+  assert.ok(poseDistance(vec(5), two) < poseDistance(vec(3), two));
+});
+
+test('the player\'s own samples can be weighted closer', () => {
+  const samples = [
+    { label: 'rat', features: vec(0.9) },
+    { label: 'tiger', features: vec(1.1), source: 'mine' },
+  ];
+  assert.equal(classify(vec(1), samples, { k: 1 }).label, 'rat');
+  assert.equal(classify(vec(1.0), samples, { k: 1, mineWeight: 0.5 }).label, 'tiger');
 });
 
 test('stabiliser locks only after a steady confident streak', () => {

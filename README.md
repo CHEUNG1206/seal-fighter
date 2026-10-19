@@ -34,8 +34,12 @@ sure it is → adjust your hands → it locks the seal.
    numbers anywhere in the frame and at any distance. The offset between the
    two wrists is kept, because two-handed seals depend on it.
 3. **K-nearest neighbours** (`src/knn.js`) compares the current pose with every
-   recorded sample and lets the 5 closest vote. A seal only *locks* after the
-   same confident answer holds for 8 frames, so flicker does not count.
+   recorded sample and lets the 5 closest vote. Poses are compared hand by
+   hand: MediaPipe often sees interlocked fingers as one hand and sometimes
+   swaps left and right, and comparing whole vectors treated those as different
+   poses. Your own samples count as closer than the bundled ones. A seal only
+   *locks* after the same confident answer holds for 8 frames, so flicker does
+   not count.
 
 Everything runs in the browser. Video never leaves your computer.
 
@@ -45,10 +49,15 @@ The webcam only works on `localhost` or `https`, so open the page through a
 small local server rather than double-clicking `index.html`:
 
 ```bash
-npm run serve        # then open http://localhost:8000
+python -m http.server 8000 --bind 127.0.0.1    # then open http://127.0.0.1:8000
 # or
-python -m http.server 8000
+npm run serve
 ```
+
+`--bind 127.0.0.1` keeps the server private to your computer; without it,
+Python shares the folder with your whole network. Start it inside this folder
+(or add `--directory path/to/seal-fighter`): if the browser shows a list of
+files, it is serving the wrong folder, so stop it with Ctrl+C.
 
 VS Code's *Live Server* extension also works.
 
@@ -68,7 +77,8 @@ accurate they are). They are one person's hands, so adding your own helps:
 2. Hold the pose and press **Space**. It records 30 samples in about 3 seconds.
 3. Repeat 2–3 times per seal, changing angle, distance and position slightly.
 4. Record **無** too, so resting hands are not mistaken for a seal.
-5. **Export JSON** to keep your samples.
+5. **只匯出我錄的** exports only your own samples; **匯出全部** exports
+   everything, bundled samples included.
 
 Samples are also kept in your browser's local storage between visits.
 

@@ -20,9 +20,12 @@ let selected = SEALS[0].id;
 let recording = null; // {left, lastAt}
 let latestFeatures = null;
 // Poses further than this from every sample are treated as "not a seal".
-// Measured on the bundled photo samples: 95% of correct matches fall within
-// 3.0, while open, relaxed hands sit at 7 or more.
-const MAX_DISTANCE = 3.0;
+// It only catches poses far from any seal, such as open hands (7 or more);
+// relaxed hands near a seal need recorded 無 samples. A tighter limit
+// rejected too many real seals from a new player's hands.
+const MAX_DISTANCE = 4.0;
+// The player's own samples count as this much closer than bundled ones.
+const MINE_WEIGHT = 0.7;
 const stabiliser = new Stabiliser({ maxDistance: MAX_DISTANCE });
 
 function setStatus(text) {
@@ -108,7 +111,7 @@ function loop() {
   drawHands(result);
   recordFrame(now);
 
-  const prediction = classify(latestFeatures, samples);
+  const prediction = classify(latestFeatures, samples, { mineWeight: MINE_WEIGHT });
   showPrediction(prediction, stabiliser.update(prediction));
   requestAnimationFrame(loop);
 }
