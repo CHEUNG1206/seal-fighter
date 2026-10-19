@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { Battle, ENEMIES, PLAYER_HP, MAX_CHAKRA, GENJUTSU_SECONDS, CHAKRA_PER_SECOND } from '../src/battle.js';
+import { Battle, ENEMIES, PLAYER_HP, MAX_CHAKRA, GENJUTSU_SECONDS, CHAKRA_PER_SECOND, DIFFICULTIES, rankFor } from '../src/battle.js';
 import { JUTSU, jutsuById, effectiveness, counterTo, progress, completed, ELEMENT_CYCLE } from '../src/jutsu.js';
 import { sealById } from '../src/seals.js';
 
@@ -114,7 +114,7 @@ test('your genjutsu freezes the enemy charge for a while', () => {
 test('a clone dodges the next attack only', () => {
   const b = fresh();
   castAll(b, 'clone');
-  assert.deepEqual(b.tick(ENEMIES[0].chargeSeconds + 0.01), [{ type: 'dodged' }]);
+  assert.deepEqual(b.tick(ENEMIES[0].chargeSeconds + 0.01), [{ type: 'dodged', heavy: false }]);
   assert.equal(b.playerHp, PLAYER_HP);
   assert.equal(b.tick(ENEMIES[0].chargeSeconds + 0.01)[0].type, 'hit');
 });
@@ -154,7 +154,7 @@ test('an enemy genjutsu fades on its own', () => {
 
 test('the enemy attacks when its charge fills', () => {
   const b = fresh();
-  assert.deepEqual(b.tick(ENEMIES[0].chargeSeconds + 0.01), [{ type: 'hit', damage: 15, playerHp: PLAYER_HP - 15 }]);
+  assert.deepEqual(b.tick(ENEMIES[0].chargeSeconds + 0.01), [{ type: 'hit', damage: 15, playerHp: PLAYER_HP - 15, heavy: false }]);
 });
 
 test('"none" and seals outside a fight are ignored', () => {
@@ -177,16 +177,19 @@ test('defeating an enemy pauses, then brings the next one', () => {
 });
 
 test('beating every enemy wins; running out of health loses', () => {
-  const b = fresh();
+  const b = new Battle({ difficulty: 'easy' });
+  b.start();
   let won = null;
   for (let guard = 0; guard < 600 && !won; guard++) {
     if (b.state === 'fighting' && b.caught > 0) b.seal('tiger');
+    if (b.state === 'fighting' && b.playerHp < 50 && b.chakra >= 30) castAll(b, 'mysticalPalm');
     const counter = JUTSU.find(j => j.type === 'attack' && effectiveness(j.element, b.enemy.element) === 2 && j.chakra <= b.chakra);
     if (b.state === 'fighting' && counter) won = castAll(b, counter.id).find(e => e.type === 'won');
     b.tick(1);
   }
   assert.ok(won, 'won');
   assert.equal(b.state, 'won');
+  assert.match(won.rank, /^[SABC]$/);
 
   const loser = fresh();
   let lost = false;
@@ -194,4 +197,91 @@ test('beating every enemy wins; running out of health loses', () => {
   assert.ok(lost);
   assert.equal(loser.playerHp, 0);
   assert.deepEqual(loser.tick(10), [], 'nothing happens after losing');
+});
+
+const stageOf = id => {
+  const b = new Battle();
+  b.start();
+  b.stage = ENEMIES.findIndex(e => e.id === id);
+  b.enterStage();
+  return b;
+};
+
+test('the next action is known in advance; heavy attacks charge longer and hit harder', () => {
+  const b = stageOf('tengu'); // attack, attack, heavy
+  assert.equal(b.intent, 'attack');
+  assert.equal(b.intentDamage, 22);
+  b.tick(b.chargeSeconds + 0.01);
+  b.tick(b.chargeSeconds + 0.01);
+  assert.equal(b.intent, 'heavy');
+  assert.equal(b.intentDamage, 44);
+  assert.equal(b.chargeSeconds, 11 * 1.5);
+  const hit = b.tick(11 + 0.01);
+  assert.deepEqual(hit, [], 'not yet: heavy needs longer');
+  const events = b.tick(6);
+  assert.deepEqual(events[0], { type: 'hit', damage: 44, playerHp: PLAYER_HP - 22 - 22 - 44, heavy: true });
+});
+
+test('the golem hardens below half health and its armour absorbs damage', () => {
+  const b = stageOf('golem');
+  const first = castAll(b, 'chidori'); // 60 of 80
+  assert.ok(first.some(e => e.type === 'harden'));
+  assert.equal(b.shield, 30);
+  b.chakra = 100;
+  const second = castAll(b, 'dragonFlame'); // 35: 30 into the armour, 5 through
+  assert.ok(second.some(e => e.type === 'shieldBroken' && e.absorbed === 30));
+  assert.equal(b.enemy.hp, 15);
+  assert.equal(b.shield, 0);
+});
+
+test('the wraith\'s water clone takes one attack for it', () => {
+  const b = stageOf('wraith');
+  castAll(b, 'fangedPursuit'); // earth beats water: 70 of 110 → below 60%
+  assert.equal(b.decoy, true);
+  b.chakra = 100;
+  const events = castAll(b, 'fangedPursuit');
+  assert.ok(events.some(e => e.type === 'decoyPopped'));
+  assert.equal(b.enemy.hp, 40, 'no damage through the clone');
+  b.chakra = 100;
+  castAll(b, 'fangedPursuit');
+  assert.equal(b.enemy.hp, 0);
+});
+
+test('the oni enrages below 40%: faster and harder', () => {
+  const b = stageOf('oni');
+  const calm = b.chargeSeconds;
+  b.enemy.hp = 60;
+  b.chakra = 100;
+  const events = castAll(b, 'chidori'); // 30 → 30 of 140
+  assert.ok(events.some(e => e.type === 'enraged'));
+  assert.equal(b.chargeSeconds, calm / 1.5);
+  assert.equal(b.intentDamage, 35);
+});
+
+test('the tengu changes element at half health', () => {
+  const b = stageOf('tengu');
+  b.enemy.hp = 170;
+  const before = castEvent(castAll(b, 'breakthrough')); // wind beats lightning: 80 → 90 left
+  assert.equal(before.factor, 2);
+  assert.equal(b.enemy.element, 'wind');
+  assert.equal(b.intent, 'genjutsu', 'new pattern');
+  b.chakra = 100;
+  assert.equal(castEvent(castAll(b, 'breakthrough')).factor, 1, 'wind no longer counters');
+  b.chakra = 100;
+  assert.equal(castEvent(castAll(b, 'dragonFlame')).factor, 2, 'fire beats wind');
+});
+
+test('difficulty scales enemy speed and damage', () => {
+  const easy = new Battle({ difficulty: 'easy' });
+  const hard = new Battle({ difficulty: 'hard' });
+  easy.start();
+  hard.start();
+  assert.ok(easy.chargeSeconds > hard.chargeSeconds);
+  assert.equal(hard.intentDamage, Math.round(15 * DIFFICULTIES.hard.damage));
+});
+
+test('rank rewards health and speed', () => {
+  assert.equal(rankFor({ playerHp: 100, seconds: 60 }), 'S');
+  assert.equal(rankFor({ playerHp: 60, seconds: 300 }), 'B');
+  assert.equal(rankFor({ playerHp: 10, seconds: 600 }), 'C');
 });
