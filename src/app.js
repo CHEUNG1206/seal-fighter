@@ -31,11 +31,12 @@ function setStatus(text) {
 
 function renderSealList() {
   const counts = store.countByLabel(samples);
+  const mine = store.countByLabel(samples.filter(s => s.source === 'mine'));
   $('seals').replaceChildren(...SEALS.map(seal => {
     const button = document.createElement('button');
     button.className = 'seal' + (seal.id === selected ? ' selected' : '');
     button.innerHTML = `<span class="glyph">${seal.name}</span>
-      <span class="meta"><kbd>${seal.key}</kbd> ${counts[seal.id] ?? 0} 個樣本</span>
+      <span class="meta"><kbd>${seal.key}</kbd> ${counts[seal.id] ?? 0} 個樣本 · 我錄的 ${mine[seal.id] ?? 0}</span>
       <span class="hint">${seal.animal}</span>`;
     button.addEventListener('click', () => select(seal.id));
     return button;
@@ -60,7 +61,8 @@ function recordFrame(now) {
     setStatus('看不到手，錄製暫停中…');
     return;
   }
-  samples.push({ label: selected, features: latestFeatures });
+  // "mine" tells the player's own samples apart from the bundled ones.
+  samples.push({ label: selected, features: latestFeatures, source: 'mine' });
   recording.lastAt = now;
   recording.left--;
   setStatus(`錄製「${sealById(selected).name}」：還有 ${recording.left} 個`);
@@ -111,11 +113,15 @@ function loop() {
   requestAnimationFrame(loop);
 }
 
-function download() {
-  const blob = new Blob([store.toJSON(samples)], { type: 'application/json' });
+function download(list, filename) {
+  if (list.length === 0) {
+    setStatus('沒有可以匯出的樣本。');
+    return;
+  }
+  const blob = new Blob([store.toJSON(list)], { type: 'application/json' });
   const link = document.createElement('a');
   link.href = URL.createObjectURL(blob);
-  link.download = 'seal-samples.json';
+  link.download = filename;
   link.click();
   URL.revokeObjectURL(link.href);
 }
@@ -148,7 +154,9 @@ async function loadBundled() {
 
 function bindControls() {
   $('record').addEventListener('click', startRecording);
-  $('export').addEventListener('click', download);
+  $('export').addEventListener('click', () => download(samples, 'seal-samples.json'));
+  $('exportMine').addEventListener('click', () =>
+    download(samples.filter(s => s.source === 'mine'), 'my-seal-samples.json'));
   $('import').addEventListener('change', e => e.target.files[0] && importFile(e.target.files[0]));
   $('clear').addEventListener('click', () => {
     const name = sealById(selected).name;

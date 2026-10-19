@@ -100,3 +100,8 @@ test('bundled samples load and cover all twelve seals', async () => {
   const labels = new Set(samples.map(s => s.label));
   for (const seal of SEALS.filter(s => s.id !== 'none')) assert.ok(labels.has(seal.id), seal.id);
 });
+
+test('the source tag survives saving and loading', () => {
+  const mine = { label: 'rat', features: new Array(FEATURE_LENGTH).fill(0.1), source: 'mine' };
+  assert.equal(parseSamples(toJSON([mine]))[0].source, 'mine');
+});
