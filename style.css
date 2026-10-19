@@ -88,3 +88,165 @@ kbd {
   main { grid-template-columns: 1fr; padding: 12px 16px; }
   header { padding: 12px 16px 0; }
 }
+
+/* ---------- shared ---------- */
+[hidden] { display: none !important; }
+.muted { color: var(--muted); }
+.nav { font-size: 0.85rem; font-weight: normal; color: var(--accent); margin-left: 12px; text-decoration: none; }
+.nav:hover { text-decoration: underline; }
+button.primary { background: var(--accent); border-color: var(--accent); color: #1a0d00; font-weight: bold; }
+
+/* ---------- battle page ---------- */
+.battle { grid-template-columns: minmax(0, 1fr) minmax(280px, 340px); }
+
+.arena { display: flex; flex-direction: column; gap: 12px; }
+
+.enemy-card, .player-card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+.enemy-head { display: flex; gap: 10px; align-items: baseline; margin-bottom: 8px; font-size: 1.15rem; }
+.player-card { display: flex; align-items: center; gap: 12px; }
+.player-card .bar { flex: 1; margin: 0; }
+
+.element {
+  display: inline-block;
+  min-width: 1.8em;
+  text-align: center;
+  border-radius: 4px;
+  padding: 0 6px;
+  background: var(--el, var(--line));
+  color: #111;
+  font-weight: bold;
+}
+
+.bar {
+  position: relative;
+  height: 18px;
+  margin-top: 6px;
+  background: #0c0c10;
+  border-radius: 9px;
+  overflow: hidden;
+}
+.bar > div { height: 100%; width: 100%; transition: width 0.25s; }
+.bar > span { position: absolute; inset: 0; font-size: 0.75rem; line-height: 18px; padding-left: 10px; color: #fff; }
+.bar.hp > div { background: linear-gradient(90deg, #d23b3b, #ff6a5a); }
+.bar.hp.player > div { background: linear-gradient(90deg, #2f9e5b, #5fdc8a); }
+.bar.charge > div { background: #8a7cff; transition: none; }
+.bar.charge.danger > div { background: #ff3b6b; animation: pulse 0.4s infinite alternate; }
+
+.stage-area {
+  position: relative;
+  height: 260px;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(circle at 50% 70%, #24222e, var(--bg) 70%);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.enemy {
+  --el: #888;
+  width: 150px;
+  height: 150px;
+  border-radius: 46% 54% 40% 60% / 55% 45% 55% 45%;
+  background: radial-gradient(circle at 35% 30%, #fff6, transparent 40%), var(--el);
+  box-shadow: 0 0 40px var(--el);
+  display: grid;
+  place-items: center;
+  animation: bob 2.4s ease-in-out infinite;
+}
+.enemy .eyes { width: 70px; height: 18px; background:
+  radial-gradient(circle, #111 7px, transparent 8px) left / 18px 18px no-repeat,
+  radial-gradient(circle, #111 7px, transparent 8px) right / 18px 18px no-repeat; }
+.enemy.appear { animation: appear 0.6s ease-out, bob 2.4s ease-in-out 0.6s infinite; }
+.enemy.hurt { animation: hurt 0.45s; }
+.enemy.gone { animation: gone 0.8s forwards; }
+
+.effect { position: absolute; inset: 0; pointer-events: none; opacity: 0; }
+.effect.burst { animation: burst 0.6s ease-out; background: radial-gradient(circle, var(--el) 0, transparent 60%); }
+
+.floater { position: absolute; top: 30%; font-size: 2.4rem; font-weight: bold; opacity: 0; pointer-events: none; }
+.floater.show { animation: float 1s ease-out; }
+
+.message { min-height: 1.4em; margin: 0; font-size: 1.05rem; text-align: center; }
+
+.recent { display: flex; gap: 6px; justify-content: center; min-height: 3rem; align-items: center; }
+.recent .glyph, .seq .glyph {
+  display: inline-grid;
+  place-items: center;
+  width: 2.4rem;
+  height: 2.4rem;
+  font-size: 1.5rem;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel);
+}
+
+.side h2 { font-size: 1.05rem; margin: 16px 0 8px; }
+.camera { position: relative; }
+.camera canvas { width: 100%; height: auto; border-radius: 8px; background: #000; }
+body.game:not(.camera-on) #view { display: none; }
+.camera-on .camera canvas { display: block; }
+.camera-on #cameraOff { display: none; }
+.camera .readout.small { display: none; top: 8px; left: 8px; padding: 4px 10px; }
+.camera-on .camera .readout.small { display: block; }
+.readout.small #guess { font-size: 2rem; }
+#guess.locked { color: var(--accent); }
+
+.scroll { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.scroll li {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 10px;
+  align-items: center;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+}
+.scroll li.strong { border-color: var(--accent); }
+.scroll li.weak { opacity: 0.6; }
+.scroll .seq { grid-column: 2; display: flex; gap: 4px; }
+.scroll .seq .glyph { width: 1.9rem; height: 1.9rem; font-size: 1.1rem; }
+.scroll .glyph.done { background: var(--accent); color: #1a0d00; border-color: var(--accent); }
+.scroll em { color: var(--accent); font-style: normal; font-size: 0.8rem; }
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(8, 8, 12, 0.82);
+  padding: 16px;
+}
+.overlay .panel {
+  max-width: 520px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 24px;
+}
+.overlay h2 { margin-top: 0; font-size: 1.6rem; }
+
+.shake { animation: shake 0.35s; }
+
+@keyframes bob { 50% { transform: translateY(-10px); } }
+@keyframes appear { from { transform: scale(0.2); opacity: 0; } }
+@keyframes hurt { 20% { transform: translateX(-14px); filter: brightness(2); } 60% { transform: translateX(10px); } }
+@keyframes gone { to { transform: scale(0.1) rotate(40deg); opacity: 0; } }
+@keyframes burst { 0% { opacity: 0.9; transform: scale(0.3); } 100% { opacity: 0; transform: scale(1.6); } }
+@keyframes float { 0% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(-60px); } }
+@keyframes pulse { to { opacity: 0.6; } }
+@keyframes shake { 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; }
+}
+
+@media (max-width: 800px) {
+  .battle { grid-template-columns: 1fr; }
+  .stage-area { height: 200px; }
+}

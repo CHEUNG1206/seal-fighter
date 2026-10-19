@@ -1,32 +1,17 @@
-import { toFeatures } from './features.js';
-import { classify, Stabiliser } from './knn.js';
+import { startCamera, SealReader, MAX_DISTANCE } from './camera.js';
 import { SEALS, sealById } from './seals.js';
 import * as store from './samples.js';
 
-const VISION = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14';
-const WASM = `${VISION}/wasm`;
-const MODEL = 'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task';
 const SAMPLES_PER_RECORDING = 30;
 const RECORD_EVERY_MS = 100;
 
 const $ = id => document.getElementById(id);
-const video = $('cam');
-const canvas = $('view');
-const ctx = canvas.getContext('2d');
 
-let landmarker = null;
-let samples = store.loadSaved();
+let samples = [];
 let selected = SEALS[0].id;
 let recording = null; // {left, lastAt}
-let latestFeatures = null;
-// Poses further than this from every sample are treated as "not a seal".
-// It only catches poses far from any seal, such as open hands (7 or more);
-// relaxed hands near a seal need recorded 無 samples. A tighter limit
-// rejected too many real seals from a new player's hands.
-const MAX_DISTANCE = 4.0;
-// The player's own samples count as this much closer than bundled ones.
-const MINE_WEIGHT = 0.7;
-const stabiliser = new Stabiliser({ maxDistance: MAX_DISTANCE });
+let ready = false;
+const reader = new SealReader();
 
 function setStatus(text) {
   $('status').textContent = text;
@@ -53,19 +38,20 @@ function select(id) {
 }
 
 function startRecording() {
-  if (!landmarker) return;
+  if (!ready) return;
   recording = { left: SAMPLES_PER_RECORDING, lastAt: 0 };
   $('record').disabled = true;
 }
 
-function recordFrame(now) {
+function recordFrame(features) {
+  const now = performance.now();
   if (!recording || now - recording.lastAt < RECORD_EVERY_MS) return;
-  if (!latestFeatures) {
+  if (!features) {
     setStatus('看不到手，錄製暫停中…');
     return;
   }
   // "mine" tells the player's own samples apart from the bundled ones.
-  samples.push({ label: selected, features: latestFeatures, source: 'mine' });
+  samples.push({ label: selected, features, source: 'mine' });
   recording.lastAt = now;
   recording.left--;
   setStatus(`錄製「${sealById(selected).name}」：還有 ${recording.left} 個`);
@@ -78,22 +64,7 @@ function recordFrame(now) {
   }
 }
 
-function drawHands(result) {
-  const { width: w, height: h } = canvas;
-  ctx.save();
-  // Mirror the picture so it behaves like a mirror for the player.
-  ctx.translate(w, 0);
-  ctx.scale(-1, 1);
-  ctx.drawImage(video, 0, 0, w, h);
-  const colours = ['#ff7a1a', '#3fc1ff'];
-  result.landmarks.forEach((hand, i) => {
-    ctx.fillStyle = colours[i % 2];
-    for (const p of hand) ctx.fillRect(p.x * w - 3, p.y * h - 3, 6, 6);
-  });
-  ctx.restore();
-}
-
-function showPrediction(prediction, locked) {
+function showPrediction({ prediction, locked }) {
   const tooFar = prediction && prediction.distance > MAX_DISTANCE;
   const raw = prediction && !tooFar ? sealById(prediction.label) : null;
   $('guess').textContent = raw ? raw.name : tooFar ? '？' : '—';
@@ -104,16 +75,9 @@ function showPrediction(prediction, locked) {
   $('locked').textContent = lockedSeal ? `結印：${lockedSeal.name}` : '';
 }
 
-function loop() {
-  const now = performance.now();
-  const result = landmarker.detectForVideo(video, now);
-  latestFeatures = toFeatures(result.landmarks, result.handedness);
-  drawHands(result);
-  recordFrame(now);
-
-  const prediction = classify(latestFeatures, samples, { mineWeight: MINE_WEIGHT });
-  showPrediction(prediction, stabiliser.update(prediction));
-  requestAnimationFrame(loop);
+function onFrame(features) {
+  recordFrame(features);
+  showPrediction(reader.read(features, samples));
 }
 
 function download(list, filename) {
@@ -137,21 +101,6 @@ async function importFile(file) {
     setStatus(`匯入了 ${samples.length} 個樣本。`);
   } catch (error) {
     setStatus(`匯入失敗：${error.message}`);
-  }
-}
-
-// Samples shipped with the repo, used when this browser has none yet.
-async function loadBundled() {
-  if (samples.length) return;
-  try {
-    const response = await fetch('samples/seal-samples.json');
-    if (response.ok) {
-      samples = store.parseSamples(await response.text());
-      renderSealList();
-      setStatus(`載入了內建的 ${samples.length} 個樣本。用自己的手再錄一些會更準。`);
-    }
-  } catch {
-    // No bundled samples yet.
   }
 }
 
@@ -180,26 +129,16 @@ function bindControls() {
 }
 
 async function start() {
-  renderSealList();
   bindControls();
-  await loadBundled();
+  const loaded = await store.loadSamples();
+  samples = loaded.samples;
+  renderSealList();
+  if (loaded.bundled) setStatus(`載入了內建的 ${samples.length} 個樣本。用自己的手再錄一些會更準。`);
   try {
-    setStatus('載入手部模型中…');
-    // Loaded here rather than at the top so the page still shows its controls
-    // and an error message when the CDN cannot be reached.
-    const { FilesetResolver, HandLandmarker } = await import(`${VISION}/vision_bundle.mjs`);
-    const vision = await FilesetResolver.forVisionTasks(WASM);
-    landmarker = await HandLandmarker.createFromOptions(vision, {
-      baseOptions: { modelAssetPath: MODEL },
-      runningMode: 'VIDEO',
-      numHands: 2,
-    });
-    setStatus('請允許使用鏡頭…');
-    video.srcObject = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 } });
-    await video.play();
+    await startCamera({ video: $('cam'), canvas: $('view'), onFrame, onStatus: setStatus });
+    ready = true;
     setStatus('準備好了。選一個印，擺好手勢，按空白鍵或「錄 30 個樣本」。');
     $('record').disabled = false;
-    loop();
   } catch (error) {
     setStatus(`無法啟動：${error.message}。請用 localhost 或 https 開啟，並允許鏡頭。`);
   }

@@ -3,40 +3,72 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Seal Fighter · 結印訓練</title>
+  <title>Seal Fighter · 結印之戰</title>
   <link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body class="game">
   <header>
-    <h1>Seal Fighter <small>結印訓練</small></h1>
-    <p id="status">準備中…</p>
+    <h1>Seal Fighter <small>結印之戰</small> <a class="nav" href="trainer.html">結印訓練 →</a></h1>
+    <p id="status">選擇開始方式。</p>
   </header>
 
-  <main>
-    <section class="stage">
-      <video id="cam" autoplay playsinline muted></video>
-      <canvas id="view" width="640" height="480"></canvas>
-      <div class="readout">
-        <div id="guess">—</div>
-        <div id="confidence">先錄一些樣本</div>
-        <div id="locked"></div>
+  <main class="battle">
+    <section class="arena">
+      <div class="enemy-card">
+        <div class="enemy-head">
+          <span id="enemyName">—</span>
+          <span id="enemyElement" class="element">—</span>
+          <span id="stage" class="muted"></span>
+        </div>
+        <div class="bar hp"><div id="enemyHp"></div><span id="enemyHpText"></span></div>
+        <div class="bar charge"><div id="charge"></div><span>蓄力</span></div>
       </div>
+
+      <div class="stage-area">
+        <div id="enemy" class="enemy"><div class="eyes"></div></div>
+        <div id="effect" class="effect"></div>
+        <div id="floater" class="floater"></div>
+      </div>
+
+      <p id="message" class="message">&nbsp;</p>
+
+      <div class="player-card">
+        <span>你</span>
+        <div class="bar hp player"><div id="playerHp"></div><span id="playerHpText"></span></div>
+      </div>
+
+      <div id="recent" class="recent" aria-label="最近的印"></div>
     </section>
 
-    <aside>
-      <h2>印 <span id="total"></span></h2>
-      <div id="seals"></div>
-      <div class="actions">
-        <button id="record" disabled>錄 30 個樣本 <kbd>Space</kbd></button>
-        <button id="clear">刪除這個印的樣本</button>
-        <button id="export">匯出全部 JSON</button>
-        <button id="exportMine">只匯出我錄的</button>
-        <label class="file">匯入 JSON <input id="import" type="file" accept="application/json"></label>
+    <aside class="side">
+      <div class="camera">
+        <video id="cam" autoplay playsinline muted></video>
+        <canvas id="view" width="320" height="240"></canvas>
+        <div class="readout small"><div id="guess">—</div></div>
+        <p id="cameraOff" class="muted">鍵盤模式：沒有使用鏡頭</p>
       </div>
-      <p class="tip">按鍵選印（1–9、0、-、=，「無」是 `）。每個印錄 2–3 次，每次稍微換角度、距離和左右位置。也要錄「無」，讓放鬆的手不會被誤判。</p>
+      <h2>忍術卷軸</h2>
+      <ol id="scroll" class="scroll"></ol>
+      <p class="tip">元素相剋：火 → 風 → 雷 → 土 → 水 → 火。用剋制敵人的忍術，傷害加倍並打斷蓄力。</p>
+      <p class="tip">鍵盤：1 子 · 2 丑 · 3 寅 · 4 卯 · 5 辰 · 6 巳 · 7 午 · 8 未 · 9 申 · 0 酉 · - 戌 · = 亥</p>
     </aside>
   </main>
 
-  <script type="module" src="src/app.js"></script>
+  <div id="overlay" class="overlay">
+    <div class="panel">
+      <h2 id="overlayTitle">結印之戰</h2>
+      <div id="overlayBody">
+        <p>敵人正在蓄力。趕在它出手前，<strong>依序結出忍術的印</strong>，擊敗三個敵人。</p>
+        <p>結印時雙手放在鏡頭前，同一個印保持一下，畫面右上角會顯示認到的印。</p>
+      </div>
+      <div class="actions">
+        <button id="startCamera" class="primary">用鏡頭開始</button>
+        <button id="startKeys">只用鍵盤開始</button>
+      </div>
+      <p class="tip">鏡頭畫面只在你的瀏覽器裡處理，不會上傳。</p>
+    </div>
+  </div>
+
+  <script type="module" src="src/game.js"></script>
 </body>
 </html>

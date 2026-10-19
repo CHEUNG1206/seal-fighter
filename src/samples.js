@@ -39,6 +39,20 @@ export function save(samples) {
   }
 }
 
+// The samples saved in this browser, or the ones shipped with the game when
+// there are none yet. `bundled` is true for the latter.
+export async function loadSamples(url = 'samples/seal-samples.json') {
+  const saved = loadSaved();
+  if (saved.length) return { samples: saved, bundled: false };
+  try {
+    const response = await fetch(url);
+    if (response.ok) return { samples: parseSamples(await response.text()), bundled: true };
+  } catch {
+    // Offline or missing: fall through.
+  }
+  return { samples: [], bundled: false };
+}
+
 export function countByLabel(samples) {
   const counts = {};
   for (const s of samples) counts[s.label] = (counts[s.label] ?? 0) + 1;

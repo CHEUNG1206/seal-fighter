@@ -7,23 +7,48 @@ reacts, and you answer with the next sequence.
 > Inspired by the hand seals in *Naruto*. All names, art and sounds here are
 > original; the seals are named after the twelve earthly branches (子丑寅卯…).
 
-**Status: version 1 — seal trainer.** The battle comes next. This version
-proves the hard part works: the webcam sees your hands and the page recognises
-which of the twelve seals you are making in real time. It ships with samples
-extracted from a public photo dataset, and you can record your own.
+**Status: playable.** Three enemies, five jutsu, webcam or keyboard. A
+separate trainer page lets you record your own hands for better recognition.
+
+## How to play
+
+1. Open the page and choose **用鏡頭開始** (camera) or **只用鍵盤開始** (keyboard).
+2. An enemy appears and its **蓄力** (charge) bar starts filling. When it fills,
+   the enemy hits you.
+3. Form a jutsu's seals **in order**. The scroll on the right lights up each
+   seal as you match it; finishing the sequence casts the jutsu.
+4. Elements counter each other: 火 → 風 → 雷 → 土 → 水 → 火. A jutsu marked
+   **剋制** does double damage and resets the enemy's charge; **被剋** does half.
+5. Beat all three enemies (泥偶 earth, 水妖 water, 炎鬼 fire) before your health
+   runs out.
+
+| Jutsu | Element | Seals |
+| --- | --- | --- |
+| 火遁・赤焰彈 | 火 fire | 巳 午 亥 |
+| 風遁・裂空刃 | 風 wind | 子 亥 酉 |
+| 雷遁・閃牙 | 雷 lightning | 午 酉 丑 |
+| 土遁・岩槍 | 土 earth | 亥 戌 巳 |
+| 水遁・潮渦 | 水 water | 丑 申 卯 |
+
+The sequences use the seals that are recognised most reliably (see
+[`samples/README.md`](samples/README.md)); 寅, 未 and 辰 are left out.
+
+**Keyboard:** 1 子 · 2 丑 · 3 寅 · 4 卯 · 5 辰 · 6 巳 · 7 午 · 8 未 · 9 申 · 0 酉 · `-` 戌 · `=` 亥.
+The keyboard also works in camera mode.
+
+With the camera, a seal counts once when it locks. To use the same seal twice
+in a row, move your hands out of it first.
 
 ## The interaction loop
 
 ```
 enemy charges an attack
-  → you form seals in front of the camera (e.g. 子 → 寅 → 申)
-  → the page recognises each seal and shows your progress
-  → the right sequence casts a jutsu; the enemy takes damage or counters
-  → next round
+  → you form seals in front of the camera (e.g. 午 → 酉 → 丑)
+  → the page recognises each seal and lights it up on the scroll
+  → the full sequence casts a jutsu; the enemy takes damage and is pushed back
+  → if its charge fills first, it hits you
+  → keep going until one side falls; then the next enemy
 ```
-
-Version 1 already has a smaller loop: pose → the page names the seal and how
-sure it is → adjust your hands → it locks the seal.
 
 ## How it works
 
@@ -63,6 +88,8 @@ VS Code's *Live Server* extension also works.
 
 ## Train your seals
 
+Open [`trainer.html`](trainer.html) (the **結印訓練** link).
+
 The twelve seals, keys in brackets:
 
 子 Rat (1) · 丑 Ox (2) · 寅 Tiger (3) · 卯 Hare (4) · 辰 Dragon (5) · 巳 Snake (6) ·
@@ -95,17 +122,24 @@ choose the parent folder, and export. Photos never leave the browser.
 npm test
 ```
 
-Checks normalising, hand ordering, KNN voting, the stabiliser, and sample
-import/export, using fake landmarks (no camera needed).
+Checks the battle rules (casting, element damage, enemy attacks, winning and
+losing), sequence matching, normalising, hand-by-hand comparison, the
+stabiliser and sample import/export, using fake landmarks (no camera needed).
 
 ## Files
 
 ```
-index.html           page layout
-style.css            styles
-src/app.js           camera, MediaPipe, recording, drawing
+index.html           the battle
+trainer.html         record and check your own seals
+style.css            styles for both pages
+src/game.js          battle page: drawing, input, sound cues
+src/battle.js        battle rules (enemies, charge, damage, win/lose)
+src/jutsu.js         jutsu, elements and sequence matching
+src/sound.js         synthesised sound effects
+src/trainer.js       trainer page: recording, import/export
+src/camera.js        webcam, MediaPipe, seal reading (shared)
 src/features.js      landmarks → normalised numbers
-src/knn.js           nearest-neighbour vote and stabiliser
+src/knn.js           hand-by-hand nearest-neighbour vote and stabiliser
 src/samples.js       saving, loading, import/export
 src/seals.js         the twelve seals and folder-name aliases
 samples/             bundled samples and where they come from
