@@ -1,0 +1,90 @@
+:root {
+  --bg: #121216;
+  --panel: #1d1d24;
+  --text: #ecebf2;
+  --muted: #9a98a8;
+  --accent: #ff7a1a;
+  --line: #2e2d38;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+}
+
+header { padding: 16px 24px 0; }
+h1 { margin: 0; font-size: 1.5rem; }
+h1 small { color: var(--muted); font-weight: normal; margin-left: 8px; }
+#status { color: var(--muted); min-height: 1.4em; }
+
+main {
+  display: grid;
+  grid-template-columns: minmax(0, 640px) minmax(260px, 1fr);
+  gap: 24px;
+  padding: 16px 24px 24px;
+}
+
+.stage { position: relative; }
+#cam { display: none; }
+#view { width: 100%; height: auto; border-radius: 8px; background: #000; display: block; }
+
+.readout {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.6);
+}
+#guess { font-size: 3rem; line-height: 1; }
+#confidence { color: var(--muted); font-size: 0.85rem; }
+#locked { color: var(--accent); font-weight: bold; min-height: 1.2em; }
+
+aside h2 { margin-top: 0; font-size: 1.1rem; }
+#total { color: var(--muted); font-weight: normal; font-size: 0.9rem; }
+
+#seals { display: grid; gap: 8px; }
+
+button, .file {
+  font: inherit;
+  color: var(--text);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 8px 12px;
+  cursor: pointer;
+  text-align: left;
+}
+button:disabled { opacity: 0.5; cursor: default; }
+
+.seal {
+  display: grid;
+  grid-template-columns: 3rem 1fr;
+  grid-template-rows: auto auto;
+  column-gap: 8px;
+}
+.seal.selected { border-color: var(--accent); }
+.seal .glyph { grid-row: span 2; font-size: 2rem; align-self: center; }
+.seal .hint { color: var(--muted); font-size: 0.8rem; }
+
+.actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.file input { display: none; }
+
+kbd {
+  font-family: ui-monospace, monospace;
+  font-size: 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 0 4px;
+}
+
+.tip { color: var(--muted); font-size: 0.85rem; }
+
+@media (max-width: 800px) {
+  main { grid-template-columns: 1fr; padding: 12px 16px; }
+  header { padding: 12px 16px 0; }
+}

@@ -1,0 +1,10 @@
+{
+  "name": "seal-fighter",
+  "private": true,
+  "type": "module",
+  "description": "Form hand seals in front of your webcam to cast jutsu and fight enemies.",
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "serve": "npx --yes http-server@14.1.1 -p 8000 -c-1 ."
+  }
+}
