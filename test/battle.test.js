@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { Battle, ENEMIES, PLAYER_HP, MAX_CHAKRA, GENJUTSU_SECONDS } from '../src/battle.js';
+import { Battle, ENEMIES, PLAYER_HP, MAX_CHAKRA, GENJUTSU_SECONDS, CHAKRA_PER_SECOND } from '../src/battle.js';
 import { JUTSU, jutsuById, effectiveness, counterTo, progress, completed, ELEMENT_CYCLE } from '../src/jutsu.js';
 import { sealById } from '../src/seals.js';
 
@@ -79,7 +79,7 @@ test('without enough chakra nothing is cast, and chakra comes back over time', (
   assert.ok(!castEvent(events));
   assert.equal(b.chakra, MAX_CHAKRA - 60);
   b.tick(2);
-  assert.equal(b.chakra, MAX_CHAKRA - 50);
+  assert.equal(b.chakra, MAX_CHAKRA - 60 + 2 * CHAKRA_PER_SECOND);
   b.tick(100);
   assert.equal(b.chakra, MAX_CHAKRA, 'never above the maximum');
 });
@@ -167,7 +167,7 @@ test('"none" and seals outside a fight are ignored', () => {
 test('defeating an enemy pauses, then brings the next one', () => {
   const b = fresh();
   castAll(b, 'chidori');
-  b.tick(10); // chakra back
+  b.tick(20); // chakra back
   const events = castAll(b, 'chidori'); // 80 hp, 60 per hit
   assert.ok(events.some(e => e.type === 'defeated'));
   assert.equal(b.state, 'between');
@@ -179,7 +179,7 @@ test('defeating an enemy pauses, then brings the next one', () => {
 test('beating every enemy wins; running out of health loses', () => {
   const b = fresh();
   let won = null;
-  for (let guard = 0; guard < 200 && !won; guard++) {
+  for (let guard = 0; guard < 600 && !won; guard++) {
     if (b.state === 'fighting' && b.caught > 0) b.seal('tiger');
     const counter = JUTSU.find(j => j.type === 'attack' && effectiveness(j.element, b.enemy.element) === 2 && j.chakra <= b.chakra);
     if (b.state === 'fighting' && counter) won = castAll(b, counter.id).find(e => e.type === 'won');

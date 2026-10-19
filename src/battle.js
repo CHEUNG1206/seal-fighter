@@ -12,7 +12,8 @@ export const ENEMIES = [
 
 export const PLAYER_HP = 100;
 export const MAX_CHAKRA = 100;
-const CHAKRA_PER_SECOND = 5;
+// Slow on purpose: big jutsu should be a decision, not something to spam.
+export const CHAKRA_PER_SECOND = 2;
 // An enemy's genjutsu wears off on its own after this long if not released.
 export const GENJUTSU_SECONDS = 10;
 const PAUSE_BETWEEN_ENEMIES = 2.5; // seconds

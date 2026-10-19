@@ -21,7 +21,7 @@ A separate trainer page lets you record your own hands for better recognition.
 3. Form a jutsu's seals **in order**. The scroll lights up each seal as you
    match it, and the **下一個印** (next seal) card shows the pose to make. With
    the camera, the same pose is drawn faintly behind your hands.
-4. Every jutsu costs **chakra** (maximum 100, recovering 5 per second). Without
+4. Every jutsu costs **chakra** (maximum 100, recovering 2 per second). Without
    enough chakra the seals are wasted.
 5. Elements counter each other: 火 → 風 → 雷 → 土 → 水 → 火. An attack marked
    **剋制** does double damage and resets the enemy's charge; **被剋** does half.
