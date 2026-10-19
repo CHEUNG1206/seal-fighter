@@ -1,15 +1,19 @@
 <!doctype html>
-<html lang="zh-Hant">
+<html lang="zh-Hant-HK">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Seal Fighter · 結印之戰</title>
+  <title data-i18n-title="title.game">Seal Fighter · 結印之戰</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body class="game">
   <header>
-    <h1>Seal Fighter <small>結印之戰</small> <a class="nav" href="trainer.html">結印訓練 →</a></h1>
-    <p id="status">選擇開始方式。</p>
+    <div class="topbar">
+      <h1>Seal Fighter <small data-i18n="title.game">結印之戰</small>
+        <a class="nav" href="trainer.html" data-i18n="nav.trainer">結印訓練 →</a></h1>
+      <div id="lang" class="lang" role="group"></div>
+    </div>
+    <p id="status" data-i18n="status.choose">揀一個開始方法。</p>
   </header>
 
   <main class="battle">
@@ -21,23 +25,29 @@
           <span id="stage" class="muted"></span>
         </div>
         <div class="bar hp"><div id="enemyHp"></div><span id="enemyHpText"></span></div>
-        <div class="bar charge"><div id="charge"></div><span>蓄力</span></div>
+        <div class="bar charge"><div id="charge"></div><span data-i18n="label.charge">儲力</span></div>
       </div>
 
       <div class="stage-area">
         <div id="enemy" class="enemy"><div class="eyes"></div></div>
-        <div id="effect" class="effect"></div>
+        <canvas id="fx" class="fx"></canvas>
         <div id="floater" class="floater"></div>
       </div>
 
       <p id="message" class="message">&nbsp;</p>
 
       <div class="player-card">
-        <span>你</span>
-        <div class="bar hp player"><div id="playerHp"></div><span id="playerHpText"></span></div>
+        <span class="who" data-i18n="label.you">你</span>
+        <div class="bars">
+          <div class="bar hp player"><div id="playerHp"></div><span id="playerHpText"></span></div>
+          <div class="bar chakra"><div id="chakra"></div><span id="chakraText"></span></div>
+        </div>
       </div>
 
-      <div id="recent" class="recent" aria-label="最近的印"></div>
+      <div class="input-row">
+        <div id="recent" class="recent" aria-live="polite"></div>
+        <div id="hint" class="hint"></div>
+      </div>
     </section>
 
     <aside class="side">
@@ -45,27 +55,28 @@
         <video id="cam" autoplay playsinline muted></video>
         <canvas id="view" width="320" height="240"></canvas>
         <div class="readout small"><div id="guess">—</div></div>
-        <p id="cameraOff" class="muted">鍵盤模式：沒有使用鏡頭</p>
+        <p id="cameraOff" class="muted" data-i18n="label.cameraOff">鍵盤模式：冇用鏡頭</p>
       </div>
-      <h2>忍術卷軸</h2>
+      <h2 data-i18n="label.scroll">忍術卷軸</h2>
       <ol id="scroll" class="scroll"></ol>
-      <p class="tip">元素相剋：火 → 風 → 雷 → 土 → 水 → 火。用剋制敵人的忍術，傷害加倍並打斷蓄力。</p>
-      <p class="tip">鍵盤：1 子 · 2 丑 · 3 寅 · 4 卯 · 5 辰 · 6 巳 · 7 午 · 8 未 · 9 申 · 0 酉 · - 戌 · = 亥</p>
+      <p class="tip" data-i18n="tip.elements"></p>
+      <p class="tip" data-i18n="tip.keys"></p>
     </aside>
   </main>
 
   <div id="overlay" class="overlay">
     <div class="panel">
-      <h2 id="overlayTitle">結印之戰</h2>
+      <h2 id="overlayTitle" data-i18n="title.game">結印之戰</h2>
       <div id="overlayBody">
-        <p>敵人正在蓄力。趕在它出手前，<strong>依序結出忍術的印</strong>，擊敗三個敵人。</p>
-        <p>結印時雙手放在鏡頭前，同一個印保持一下，畫面右上角會顯示認到的印。</p>
+        <p data-i18n-html="intro.p1"></p>
+        <p data-i18n="intro.p2"></p>
+        <p data-i18n="intro.p3"></p>
       </div>
       <div class="actions">
-        <button id="startCamera" class="primary">用鏡頭開始</button>
-        <button id="startKeys">只用鍵盤開始</button>
+        <button id="startCamera" class="primary" data-i18n="start.camera">用鏡頭開始</button>
+        <button id="startKeys" data-i18n="start.keys">淨係用鍵盤</button>
       </div>
-      <p class="tip">鏡頭畫面只在你的瀏覽器裡處理，不會上傳。</p>
+      <p class="tip" data-i18n="privacy"></p>
     </div>
   </div>
 

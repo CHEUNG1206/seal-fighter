@@ -1,15 +1,19 @@
 <!doctype html>
-<html lang="zh-Hant">
+<html lang="zh-Hant-HK">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Seal Fighter · 結印訓練</title>
+  <title data-i18n-title="title.trainer">Seal Fighter · 結印訓練</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <header>
-    <h1>Seal Fighter <small>結印訓練</small> <a class="nav" href="index.html">← 回到戰鬥</a></h1>
-    <p id="status">準備中…</p>
+    <div class="topbar">
+      <h1>Seal Fighter <small data-i18n="title.trainer">結印訓練</small>
+        <a class="nav" href="index.html" data-i18n="nav.game">← 返去戰鬥</a></h1>
+      <div id="lang" class="lang" role="group"></div>
+    </div>
+    <p id="status">…</p>
   </header>
 
   <main>
@@ -18,22 +22,22 @@
       <canvas id="view" width="640" height="480"></canvas>
       <div class="readout">
         <div id="guess">—</div>
-        <div id="confidence">先錄一些樣本</div>
+        <div id="confidence"></div>
         <div id="locked"></div>
       </div>
     </section>
 
     <aside>
-      <h2>印 <span id="total"></span></h2>
+      <h2><span data-i18n="trainer.heading">印</span> <span id="total"></span></h2>
       <div id="seals"></div>
       <div class="actions">
-        <button id="record" disabled>錄 30 個樣本 <kbd>Space</kbd></button>
-        <button id="clear">刪除這個印的樣本</button>
-        <button id="export">匯出全部 JSON</button>
-        <button id="exportMine">只匯出我錄的</button>
-        <label class="file">匯入 JSON <input id="import" type="file" accept="application/json"></label>
+        <button id="record" disabled><span data-i18n="trainer.record">錄 30 個樣本</span> <kbd>Space</kbd></button>
+        <button id="clear" data-i18n="trainer.clear">刪除呢個印嘅樣本</button>
+        <button id="export" data-i18n="trainer.exportAll">匯出全部 JSON</button>
+        <button id="exportMine" data-i18n="trainer.exportMine">淨係匯出我錄嘅</button>
+        <label class="file"><span data-i18n="trainer.import">匯入 JSON</span> <input id="import" type="file" accept="application/json"></label>
       </div>
-      <p class="tip">按鍵選印（1–9、0、-、=，「無」是 `）。每個印錄 2–3 次，每次稍微換角度、距離和左右位置。也要錄「無」，讓放鬆的手不會被誤判。</p>
+      <p class="tip" data-i18n="trainer.tip"></p>
     </aside>
   </main>
 

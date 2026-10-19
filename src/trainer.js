@@ -1,6 +1,8 @@
 import { startCamera, SealReader, MAX_DISTANCE } from './camera.js';
 import { SEALS, sealById } from './seals.js';
 import * as store from './samples.js';
+import { t, applyI18n, mountLanguagePicker, onLangChange } from './i18n.js';
+import { poseSVG } from './hint.js';
 
 const SAMPLES_PER_RECORDING = 30;
 const RECORD_EVERY_MS = 100;
@@ -24,12 +26,13 @@ function renderSealList() {
     const button = document.createElement('button');
     button.className = 'seal' + (seal.id === selected ? ' selected' : '');
     button.innerHTML = `<span class="glyph">${seal.name}</span>
-      <span class="meta"><kbd>${seal.key}</kbd> ${counts[seal.id] ?? 0} 個樣本 · 我錄的 ${mine[seal.id] ?? 0}</span>
-      <span class="hint">${seal.animal}</span>`;
+      <span class="meta"><kbd>${seal.key}</kbd> ${t('trainer.sealMeta', { n: counts[seal.id] ?? 0, mine: mine[seal.id] ?? 0 })}</span>
+      <span class="animal">${t(`animal.${seal.id}`)}</span>
+      <span class="thumb">${poseSVG(seal.id, 52)}</span>`;
     button.addEventListener('click', () => select(seal.id));
     return button;
   }));
-  $('total').textContent = `${samples.length} 個樣本`;
+  $('total').textContent = t('trainer.samples', { n: samples.length });
 }
 
 function select(id) {
@@ -47,20 +50,20 @@ function recordFrame(features) {
   const now = performance.now();
   if (!recording || now - recording.lastAt < RECORD_EVERY_MS) return;
   if (!features) {
-    setStatus('看不到手，錄製暫停中…');
+    setStatus(t('trainer.paused'));
     return;
   }
   // "mine" tells the player's own samples apart from the bundled ones.
   samples.push({ label: selected, features, source: 'mine' });
   recording.lastAt = now;
   recording.left--;
-  setStatus(`錄製「${sealById(selected).name}」：還有 ${recording.left} 個`);
+  setStatus(t('trainer.recording', { seal: sealById(selected).name, n: recording.left }));
   if (recording.left === 0) {
     recording = null;
     $('record').disabled = false;
     store.save(samples);
     renderSealList();
-    setStatus('錄好了。換個角度或距離再錄一次，辨識會更穩。');
+    setStatus(t('trainer.done'));
   }
 }
 
@@ -69,10 +72,10 @@ function showPrediction({ prediction, locked }) {
   const raw = prediction && !tooFar ? sealById(prediction.label) : null;
   $('guess').textContent = raw ? raw.name : tooFar ? '？' : '—';
   $('confidence').textContent = prediction
-    ? `信心 ${Math.round(prediction.confidence * 100)}% · 距離 ${prediction.distance.toFixed(2)}`
-    : samples.length ? '看不到手' : '先錄一些樣本';
+    ? t('trainer.confidence', { c: Math.round(prediction.confidence * 100), d: prediction.distance.toFixed(2) })
+    : t(samples.length ? 'trainer.noHand' : 'trainer.needSamples');
   const lockedSeal = locked && locked !== 'none' ? sealById(locked) : null;
-  $('locked').textContent = lockedSeal ? `結印：${lockedSeal.name}` : '';
+  $('locked').textContent = lockedSeal ? t('trainer.locked', { seal: lockedSeal.name }) : '';
 }
 
 function onFrame(features) {
@@ -82,7 +85,7 @@ function onFrame(features) {
 
 function download(list, filename) {
   if (list.length === 0) {
-    setStatus('沒有可以匯出的樣本。');
+    setStatus(t('trainer.nothingToExport'));
     return;
   }
   const blob = new Blob([store.toJSON(list)], { type: 'application/json' });
@@ -98,9 +101,9 @@ async function importFile(file) {
     samples = store.parseSamples(await file.text());
     store.save(samples);
     renderSealList();
-    setStatus(`匯入了 ${samples.length} 個樣本。`);
+    setStatus(t('trainer.imported', { n: samples.length }));
   } catch (error) {
-    setStatus(`匯入失敗：${error.message}`);
+    setStatus(t('trainer.importFailed', { error: error.message }));
   }
 }
 
@@ -111,8 +114,7 @@ function bindControls() {
     download(samples.filter(s => s.source === 'mine'), 'my-seal-samples.json'));
   $('import').addEventListener('change', e => e.target.files[0] && importFile(e.target.files[0]));
   $('clear').addEventListener('click', () => {
-    const name = sealById(selected).name;
-    if (!confirm(`刪除「${name}」的所有樣本？`)) return;
+    if (!confirm(t('trainer.confirmClear', { seal: sealById(selected).name }))) return;
     samples = samples.filter(s => s.label !== selected);
     store.save(samples);
     renderSealList();
@@ -130,17 +132,20 @@ function bindControls() {
 
 async function start() {
   bindControls();
+  mountLanguagePicker($('lang'));
+  onLangChange(renderSealList);
+  applyI18n();
   const loaded = await store.loadSamples();
   samples = loaded.samples;
   renderSealList();
-  if (loaded.bundled) setStatus(`載入了內建的 ${samples.length} 個樣本。用自己的手再錄一些會更準。`);
+  if (loaded.bundled) setStatus(t('trainer.bundled', { n: samples.length }));
   try {
     await startCamera({ video: $('cam'), canvas: $('view'), onFrame, onStatus: setStatus });
     ready = true;
-    setStatus('準備好了。選一個印，擺好手勢，按空白鍵或「錄 30 個樣本」。');
+    setStatus(t('trainer.ready'));
     $('record').disabled = false;
   } catch (error) {
-    setStatus(`無法啟動：${error.message}。請用 localhost 或 https 開啟，並允許鏡頭。`);
+    setStatus(t('trainer.failed', { error: error.message }));
   }
 }
 

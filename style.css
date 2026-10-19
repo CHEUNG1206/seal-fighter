@@ -63,13 +63,15 @@ button:disabled { opacity: 0.5; cursor: default; }
 
 .seal {
   display: grid;
-  grid-template-columns: 3rem 1fr;
+  grid-template-columns: 3rem 1fr auto;
   grid-template-rows: auto auto;
   column-gap: 8px;
+  align-items: center;
 }
+.seal .thumb { grid-column: 3; grid-row: 1 / span 2; line-height: 0; }
 .seal.selected { border-color: var(--accent); }
 .seal .glyph { grid-row: span 2; font-size: 2rem; align-self: center; }
-.seal .hint { color: var(--muted); font-size: 0.8rem; }
+.seal .animal { color: var(--muted); font-size: 0.8rem; }
 
 .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
 .file input { display: none; }
@@ -250,3 +252,72 @@ body.game:not(.camera-on) #view { display: none; }
   .battle { grid-template-columns: 1fr; }
   .stage-area { height: 200px; }
 }
+
+/* ---------- header, languages ---------- */
+.topbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+.lang { display: flex; gap: 4px; }
+.lang button { padding: 4px 10px; font-size: 0.85rem; }
+.lang button.active { border-color: var(--accent); color: var(--accent); }
+
+/* ---------- chakra, hints, scroll extras ---------- */
+.player-card .bars { flex: 1; display: grid; gap: 6px; }
+.player-card .bar { margin: 0; }
+.bar.chakra > div { background: linear-gradient(90deg, #2c6cff, #5ec8ff); }
+.bar.charge.frozen > div { background: #b07cff; animation: pulse 0.8s infinite alternate; }
+
+.input-row { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; }
+.recent { justify-content: flex-start; flex-wrap: wrap; }
+.hint {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  min-width: 150px;
+  padding: 8px 12px;
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+}
+.hint:empty { display: none; }
+.hint-label { font-size: 0.75rem; color: var(--muted); }
+.hint-body { display: flex; align-items: center; gap: 8px; }
+.hint-glyph { font-size: 2.6rem; line-height: 1; color: var(--accent); }
+.hint-meta { font-size: 0.75rem; color: var(--muted); max-width: 200px; text-align: center; }
+
+.scroll li { grid-template-columns: auto 1fr auto; }
+.scroll .seq { grid-column: 2 / span 2; flex-wrap: wrap; }
+.scroll .cost { grid-column: 3; grid-row: 1; font-size: 0.75rem; color: #7fb6ff; white-space: nowrap; }
+.scroll li.poor .cost { color: #ff6a7a; }
+.scroll li.disabled { opacity: 0.35; }
+.scroll em.weak { color: var(--muted); }
+.element.type-heal { background: #5fdc8a; }
+.element.type-genjutsu { background: #b07cff; }
+.element.type-clone { background: #d0d0d8; }
+.element.type-release { background: #fff; }
+
+/* the effects canvas covers the battle area */
+.fx { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+
+/* enemy states */
+.enemy.stunned { filter: saturate(0.3) hue-rotate(220deg) brightness(0.9); }
+/* a clone is ready to take the next hit */
+.clone-ready .player-card { box-shadow: 0 0 0 2px #d0d0d8, 0 0 16px rgba(255, 255, 255, 0.35); }
+
+/* caught in the enemy's genjutsu: the world wobbles and turns purple */
+body.caught .arena { animation: wobble 2.4s ease-in-out infinite; filter: hue-rotate(250deg) saturate(1.4); }
+body.caught .stage-area::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle, transparent 35%, rgba(120, 40, 200, 0.45));
+  pointer-events: none;
+}
+body.caught .scroll li:not(.disabled) { border-color: #fff; box-shadow: 0 0 12px #b07cff; }
+@keyframes wobble { 25% { transform: skewX(1.5deg) scale(1.01); } 75% { transform: skewX(-1.5deg) scale(0.99); } }
+
+@media (max-width: 800px) {
+  .input-row { grid-template-columns: 1fr; }
+}
+
+/* keep the header (and its language buttons) usable above the start/end screen */
+.game header { position: relative; z-index: 20; }
+.overlay { z-index: 10; }
