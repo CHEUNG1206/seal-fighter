@@ -8,8 +8,9 @@ reacts, and you answer with the next sequence.
 > original; the seals are named after the twelve earthly branches (子丑寅卯…).
 
 **Status: version 1 — seal trainer.** The battle comes next. This version
-proves the hard part works: the webcam sees both hands, you record examples
-of each seal, and the page recognises which seal you are making in real time.
+proves the hard part works: the webcam sees your hands and the page recognises
+which of the twelve seals you are making in real time. It ships with samples
+extracted from a public photo dataset, and you can record your own.
 
 ## The interaction loop
 
@@ -53,23 +54,30 @@ VS Code's *Live Server* extension also works.
 
 ## Train your seals
 
-| Seal | Key | Pose |
-| --- | --- | --- |
-| 子 | 1 | palms pressed together |
-| 寅 | 2 | fingers interlocked, index fingers up |
-| 申 | 3 | palms stacked |
-| 亥 | 4 | fists, knuckles facing |
-| 午 | 5 | thumbs and index fingers form a triangle |
-| 無 | 0 | relaxed hands, waving, anything that is *not* a seal |
+The twelve seals, keys in brackets:
 
-1. Press a number key (or click a seal).
+子 Rat (1) · 丑 Ox (2) · 寅 Tiger (3) · 卯 Hare (4) · 辰 Dragon (5) · 巳 Snake (6) ·
+午 Horse (7) · 未 Ram (8) · 申 Monkey (9) · 酉 Bird (0) · 戌 Dog (-) · 亥 Boar (=) ·
+and 無 (`) for relaxed hands that are *not* a seal.
+
+The page starts with 1,851 bundled samples (see
+[`samples/README.md`](samples/README.md) for where they come from and how
+accurate they are). They are one person's hands, so adding your own helps:
+
+1. Press a seal's key (or click it).
 2. Hold the pose and press **Space**. It records 30 samples in about 3 seconds.
 3. Repeat 2–3 times per seal, changing angle, distance and position slightly.
 4. Record **無** too, so resting hands are not mistaken for a seal.
-5. **Export JSON** to keep your samples. Saving it as
-   `samples/seal-samples.json` makes it the default for new visitors.
+5. **Export JSON** to keep your samples.
 
 Samples are also kept in your browser's local storage between visits.
+
+### Samples from photos
+
+[`tools/extract.html`](tools/extract.html) turns a folder of photos into
+samples with the same hand model and normalising as the game. Put each seal's
+photos in a sub-folder named after it (`rat/`, `tiger/`, … or `子/`, `寅/`, …),
+choose the parent folder, and export. Photos never leave the browser.
 
 ## Tests
 
@@ -89,7 +97,9 @@ src/app.js           camera, MediaPipe, recording, drawing
 src/features.js      landmarks → normalised numbers
 src/knn.js           nearest-neighbour vote and stabiliser
 src/samples.js       saving, loading, import/export
-src/seals.js         the list of seals
+src/seals.js         the twelve seals and folder-name aliases
+samples/             bundled samples and where they come from
+tools/extract.*      photo folder → samples
 test/                unit tests (node --test)
 PROCESS.md           how AI was used
 ```

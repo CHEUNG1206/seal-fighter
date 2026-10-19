@@ -83,3 +83,20 @@ test('samples round-trip through JSON and bad rows are dropped', () => {
   assert.throws(() => parseSamples('{"samples": []}'), /No valid samples/);
   assert.deepEqual(countByLabel([good, good]), { rat: 2 });
 });
+
+test('photo folders map to seal ids', async () => {
+  const { labelFromFolder, SEALS } = await import('../src/seals.js');
+  assert.equal(labelFromFolder('tiger'), 'tiger');
+  assert.equal(labelFromFolder('Rooster'), 'bird');
+  assert.equal(labelFromFolder('寅'), 'tiger');
+  assert.equal(labelFromFolder('zero'), null);
+  assert.equal(new Set(SEALS.map(s => s.key)).size, SEALS.length, 'keys are unique');
+});
+
+test('bundled samples load and cover all twelve seals', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const { SEALS } = await import('../src/seals.js');
+  const samples = parseSamples(await readFile(new URL('../samples/seal-samples.json', import.meta.url), 'utf8'));
+  const labels = new Set(samples.map(s => s.label));
+  for (const seal of SEALS.filter(s => s.id !== 'none')) assert.ok(labels.has(seal.id), seal.id);
+});

@@ -19,7 +19,11 @@ let samples = store.loadSaved();
 let selected = SEALS[0].id;
 let recording = null; // {left, lastAt}
 let latestFeatures = null;
-const stabiliser = new Stabiliser();
+// Poses further than this from every sample are treated as "not a seal".
+// Measured on the bundled photo samples: 95% of correct matches fall within
+// 3.0, while open, relaxed hands sit at 7 or more.
+const MAX_DISTANCE = 3.0;
+const stabiliser = new Stabiliser({ maxDistance: MAX_DISTANCE });
 
 function setStatus(text) {
   $('status').textContent = text;
@@ -32,7 +36,7 @@ function renderSealList() {
     button.className = 'seal' + (seal.id === selected ? ' selected' : '');
     button.innerHTML = `<span class="glyph">${seal.name}</span>
       <span class="meta"><kbd>${seal.key}</kbd> ${counts[seal.id] ?? 0} 個樣本</span>
-      <span class="hint">${seal.hint}</span>`;
+      <span class="hint">${seal.animal}</span>`;
     button.addEventListener('click', () => select(seal.id));
     return button;
   }));
@@ -85,8 +89,9 @@ function drawHands(result) {
 }
 
 function showPrediction(prediction, locked) {
-  const raw = prediction ? sealById(prediction.label) : null;
-  $('guess').textContent = raw ? raw.name : '—';
+  const tooFar = prediction && prediction.distance > MAX_DISTANCE;
+  const raw = prediction && !tooFar ? sealById(prediction.label) : null;
+  $('guess').textContent = raw ? raw.name : tooFar ? '？' : '—';
   $('confidence').textContent = prediction
     ? `信心 ${Math.round(prediction.confidence * 100)}% · 距離 ${prediction.distance.toFixed(2)}`
     : samples.length ? '看不到手' : '先錄一些樣本';

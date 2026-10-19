@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Seal Fighter · 圖片轉樣本</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+  <header>
+    <h1>圖片轉樣本 <small>Seal Fighter tools</small></h1>
+    <p id="status">選一個資料夾：裡面每個子資料夾是一個印（例如 <code>rat/</code>、<code>tiger/</code>），放該印的照片。</p>
+  </header>
+  <main style="grid-template-columns: 1fr">
+    <section>
+      <div class="actions">
+        <label class="file">選擇資料夾 <input id="folder" type="file" webkitdirectory multiple></label>
+        <label><input id="twoHands" type="checkbox" checked> 只保留偵測到兩隻手的照片</label>
+        <button id="export" disabled>匯出 JSON</button>
+      </div>
+      <p class="tip">照片只在你的瀏覽器裡處理，不會上傳。匯出的 JSON 只有關鍵點數字。</p>
+      <table id="report"></table>
+    </section>
+  </main>
+  <script type="module" src="extract.js"></script>
+</body>
+</html>
