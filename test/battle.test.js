@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { Battle, ENEMIES, PLAYER_HP, MAX_CHAKRA, GENJUTSU_SECONDS, CHAKRA_PER_SECOND } from '../src/battle.js';
+import { Battle, ENEMIES, PLAYER_HP, MAX_CHAKRA, GENJUTSU_SECONDS, CHAKRA_PER_SECOND, BREATH_SECONDS } from '../src/battle.js';
 import { JUTSU, jutsuById, effectiveness, counterTo, progress, completed, ELEMENT_CYCLE } from '../src/jutsu.js';
 import { sealById } from '../src/seals.js';
 
@@ -55,7 +55,9 @@ test('progress and completion follow the latest seals', () => {
 
 test('an attack spends chakra and damages the enemy', () => {
   const b = fresh();
-  const cast = castEvent(castAll(b, 'dragonFlame')); // fire against earth: normal
+  const ready = castAll(b, 'dragonFlame').find(e => e.type === 'breathReady'); // fire against earth: normal
+  assert.equal(ready.seconds, BREATH_SECONDS);
+  const cast = castEvent(b.breathe());
   assert.equal(cast.damage, 35);
   assert.equal(b.enemy.hp, ENEMIES[0].hp - 35);
   assert.equal(b.chakra, MAX_CHAKRA - 35);
@@ -154,7 +156,7 @@ test('an enemy genjutsu fades on its own', () => {
 
 test('the enemy attacks when its charge fills', () => {
   const b = fresh();
-  assert.deepEqual(b.tick(ENEMIES[0].chargeSeconds + 0.01), [{ type: 'hit', damage: 15, playerHp: PLAYER_HP - 15 }]);
+  assert.deepEqual(b.tick(ENEMIES[0].chargeSeconds + 0.01), [{ type: 'hit', damage: 15, playerHp: PLAYER_HP - 15, guarded: false }]);
 });
 
 test('"none" and seals outside a fight are ignored', () => {
@@ -182,7 +184,7 @@ test('beating every enemy wins; running out of health loses', () => {
   for (let guard = 0; guard < 600 && !won; guard++) {
     if (b.state === 'fighting' && b.caught > 0) b.seal('tiger');
     const counter = JUTSU.find(j => j.type === 'attack' && effectiveness(j.element, b.enemy.element) === 2 && j.chakra <= b.chakra);
-    if (b.state === 'fighting' && counter) won = castAll(b, counter.id).find(e => e.type === 'won');
+    if (b.state === 'fighting' && counter) won = [...castAll(b, counter.id), ...b.breathe()].find(e => e.type === 'won');
     b.tick(1);
   }
   assert.ok(won, 'won');
@@ -194,4 +196,48 @@ test('beating every enemy wins; running out of health loses', () => {
   assert.ok(lost);
   assert.equal(loser.playerHp, 0);
   assert.deepEqual(loser.tick(10), [], 'nothing happens after losing');
+});
+
+test('a breath jutsu waits for the player to blow', () => {
+  const b = fresh();
+  const events = castAll(b, 'dragonFlame');
+  assert.ok(!castEvent(events), 'no fire yet');
+  assert.equal(b.chakra, MAX_CHAKRA - 35, 'chakra is spent when the seals are done');
+  assert.deepEqual(b.seal('ox'), [], 'seals are ignored while waiting');
+  b.tick(1);
+  const cast = castEvent(b.breathe());
+  assert.equal(cast.breathed, true);
+  assert.equal(cast.damage, 35);
+  assert.deepEqual(b.breathe(), [], 'only once');
+});
+
+test('not blowing in time lets the fire out at half strength', () => {
+  const b = fresh();
+  castAll(b, 'fireball'); // 55, fire against earth: normal
+  const events = b.tick(BREATH_SECONDS + 0.01);
+  assert.ok(events.some(e => e.type === 'breathFaded'));
+  const cast = castEvent(events);
+  assert.equal(cast.breathed, false);
+  assert.equal(cast.damage, 28);
+  assert.equal(b.breath, null);
+});
+
+test('guarding halves an attack and stops chakra recovering', () => {
+  const b = fresh();
+  castAll(b, 'chidori'); // 70 chakra left
+  b.setGuard(true);
+  b.tick(5);
+  assert.equal(b.chakra, MAX_CHAKRA - 30, 'no recovery while guarding');
+  const hit = b.tick(ENEMIES[0].chargeSeconds)[0];
+  assert.deepEqual(hit, { type: 'hit', damage: 8, playerHp: PLAYER_HP - 8, guarded: true });
+  b.setGuard(false);
+  b.tick(1);
+  assert.equal(b.chakra, MAX_CHAKRA - 30 + CHAKRA_PER_SECOND);
+});
+
+test('guard and breath do nothing outside a fight', () => {
+  const b = new Battle();
+  b.setGuard(true);
+  assert.equal(b.guarding, false);
+  assert.deepEqual(b.breathe(), []);
 });

@@ -56,6 +56,28 @@ The keyboard also works in camera mode.
 With the camera, a seal counts once when it locks. To use the same seal twice
 in a row (水鮫彈 has 辰 twice, but not in a row), move your hands out of it first.
 
+### Body moves (camera mode, optional)
+
+Three extra camera inputs, each switchable on the start screen. Each has a key
+so the game still works without it.
+
+| Move | Camera | Key | Effect |
+| --- | --- | --- | --- |
+| Breathe fire | **open your mouth wide** (MediaPipe Face Landmarker, `jawOpen` blendshape) | **F** | 豪火球 and 龍火 are breathed out, as in the series. After their seals you have 3 seconds to blow; otherwise the fire comes out at half strength. |
+| Guard | **raise both hands above your shoulders** (Pose Landmarker) | hold **Space** | Enemy attacks do half damage. Chakra does not recover while guarding, so you cannot guard all the time. |
+| Silhouette | always on (Image Segmenter, selfie model) | – | You appear in the arena, cut out from the camera image, and jutsu start from your hands (fire breath from your mouth). |
+
+Running several models at once is slower (Week 8). The face model only runs
+during the 3-second breath window, pose every 3rd frame and segmentation every
+2nd. On a computer whose graphics are drawn in software (no GPU, or browser
+acceleration off), MediaPipe's GPU mode was 4–6× slower than its CPU mode
+(pose: 417 ms vs 67 ms per frame), so the game checks the WebGL renderer and
+uses the CPU there. If a model cannot load, that move switches off, the status
+line says why, and its key still works.
+
+Nothing is recorded or uploaded: each camera frame is processed in the browser
+and replaced by the next.
+
 ### Where the seal sequences come from
 
 - 豪火球, 龍火, 水乱破, 水鮫弾, 追牙 and 分身: `setting/jutsu.csv` in
@@ -173,7 +195,8 @@ npm test
 ```
 
 Checks the battle rules (chakra, element damage, healing, both kinds of
-genjutsu, release, clones, winning and losing), that no jutsu fires inside
+genjutsu, release, clones, breathing fire, guarding, winning and losing), the
+open-mouth and raised-hands readings, that no jutsu fires inside
 another, that all three languages are complete, sequence matching,
 normalising, hand-by-hand comparison, the stabiliser and sample import/export,
 using fake landmarks (no camera needed).
@@ -190,6 +213,9 @@ src/jutsu.js         jutsu, elements, sequence matching, names in 3 languages
 src/i18n.js          all other text in 粵語 / English / 日本語
 src/effects.js       canvas special effects for each jutsu
 src/hint.js          draws a seal's hand pose (cards, thumbnails, camera ghost)
+src/body.js          face/pose landmarks → open mouth, raised hands (tested)
+src/bodyTracker.js   loads and runs the face, pose and segmentation models
+src/silhouette.js    cuts the player out of the camera image for the arena
 src/poses.js         one typical pose per seal (generated)
 src/sound.js         synthesised sound effects
 src/trainer.js       trainer page: recording, import/export

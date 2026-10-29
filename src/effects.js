@@ -1,5 +1,7 @@
 // Jutsu special effects, drawn on a canvas laid over the battle area.
-// play(kind) starts an effect; the canvas only animates while one is running.
+// play(kind, {origin}) starts an effect, from `origin` ({x, y} in canvas
+// pixels, e.g. the player's hands) when given; the canvas only animates while
+// one is running.
 //
 // Each effect is a mix of particles (sparks, droplets, leaves…) and shapes
 // drawn by a function of time (a fireball's path, a lightning bolt, rock
@@ -140,8 +142,8 @@ export function createEffects(canvas) {
 
   // ---------- the effects ----------
 
-  function fire(w, h) {
-    const [sx, sy, ex, ey] = [w / 2, h + 20, w / 2, h / 2];
+  function fire(w, h, from) {
+    const [sx, sy, ex, ey] = [from.x, from.y, w / 2, h / 2];
     const travel = 0.45;
     shape(travel, (c, k) => {
       const x = sx + (ex - sx) * k;
@@ -204,9 +206,9 @@ export function createEffects(canvas) {
     return points;
   }
 
-  function lightning(w, h) {
+  function lightning(w, h, from) {
     const [ex, ey] = [w / 2, h / 2];
-    const starts = [[w / 2, h + 10], [w * 0.15, -10], [w * 0.85, -10]];
+    const starts = [[from.x, from.y], [w * 0.15, -10], [w * 0.85, -10]];
     shape(0.5, (c, k) => {
       if (k > 0.85) return;
       for (const [sx, sy] of starts) {
@@ -272,9 +274,9 @@ export function createEffects(canvas) {
       speed: [80, 260], gravity: 600, size: [3, 7], spin: 10 }), 280);
   }
 
-  function heal(w, h) {
+  function heal(w, h, from) {
     shape(1.1, (c, k) => {
-      const g = c.createRadialGradient(w / 2, h, 0, w / 2, h, h * 0.9);
+      const g = c.createRadialGradient(from.x, from.y, 0, from.x, from.y, h * 0.9);
       g.addColorStop(0, `rgba(120,255,170,${0.45 * (1 - k)})`);
       g.addColorStop(1, 'rgba(120,255,170,0)');
       c.fillStyle = g;
@@ -370,15 +372,66 @@ export function createEffects(canvas) {
     });
   }
 
-  const EFFECTS = { fire, water, lightning, wind, earth, heal, genjutsu, clone, release, enemyHit, enemyGenjutsu };
+  // Fire breathed from the player's mouth: a widening stream of flame that
+  // rolls across to the enemy and bursts.
+  function breathFire(w, h, from) {
+    const [ex, ey] = [w / 2, h / 2];
+    const aim = Math.atan2(ey - from.y, ex - from.x);
+    const reach = Math.hypot(ex - from.x, ey - from.y);
+    shape(0.9, (c, k) => {
+      const g = c.createRadialGradient(from.x, from.y, 0, from.x, from.y, 40 + 60 * k);
+      g.addColorStop(0, 'rgba(255,240,180,0.8)');
+      g.addColorStop(1, 'rgba(255,90,20,0)');
+      c.fillStyle = g;
+      c.beginPath();
+      c.arc(from.x, from.y, 40 + 60 * k, 0, TAU);
+      c.fill();
+      const spread = 0.12 + 0.25 * k;
+      burst(from.x, from.y, { count: 10, colours: ['#fff2a0', '#ffb020', '#ff7a1a', '#ff3000'],
+        speed: [reach * 1.2, reach * 1.8], angle: [aim - spread, aim + spread], size: [4, 9], life: [0.35, 0.6] });
+    });
+    setTimeout(() => {
+      burst(ex, ey, { count: 110, colours: ['#fff2a0', '#ffb020', '#ff5a1f', '#ff3000'], speed: [100, 380], size: [3, 8], gravity: -60 });
+      shape(0.6, (c, k) => {
+        c.fillStyle = `rgba(255,140,40,${0.3 * (1 - k)})`;
+        c.fillRect(0, 0, w, h);
+      });
+    }, 600);
+  }
+
+  // A hexagonal shield flashing up in front of the player.
+  function guard(w, h, from) {
+    shape(0.5, (c, k) => {
+      const r = 70 + 30 * k;
+      c.strokeStyle = `rgba(120,200,255,${1 - k})`;
+      c.fillStyle = `rgba(120,200,255,${0.25 * (1 - k)})`;
+      c.lineWidth = 5;
+      c.beginPath();
+      for (let i = 0; i <= 6; i++) {
+        const a = (i / 6) * TAU + Math.PI / 6;
+        const [x, y] = [from.x + Math.cos(a) * r, Math.min(h - 4, from.y - 40) + Math.sin(a) * r * 0.7];
+        if (i === 0) c.moveTo(x, y);
+        else c.lineTo(x, y);
+      }
+      c.fill();
+      c.stroke();
+    });
+    burst(from.x, Math.min(h - 4, from.y - 40), { count: 30, colours: ['#d8f0ff', '#78c8ff'], shape: 'shard', speed: [80, 220], size: [3, 6], spin: 10 });
+  }
+
+  const EFFECTS = { fire, water, lightning, wind, earth, heal, genjutsu, clone, release, enemyHit, enemyGenjutsu, breathFire, guard };
 
   return {
-    play(kind) {
+    play(kind, { origin } = {}) {
       const effect = EFFECTS[kind];
       if (!effect) return;
       resize();
       const { w, h } = size();
-      effect(w, h);
+      effect(w, h, origin ?? { x: w / 2, y: h + 20 });
+    },
+    // For automated checks: what is still animating.
+    get active() {
+      return { particles: particles.length, shapes: shapes.length, running };
     },
   };
 }

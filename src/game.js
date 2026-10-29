@@ -1,4 +1,4 @@
-import { Battle, ENEMIES, PLAYER_HP, MAX_CHAKRA } from './battle.js';
+import { Battle, ENEMIES, PLAYER_HP, MAX_CHAKRA, BREATH_SECONDS } from './battle.js';
 import { JUTSU, ELEMENTS, effectiveness, progress } from './jutsu.js';
 import { SEALS, sealById } from './seals.js';
 import { startCamera, SealReader, MAX_DISTANCE } from './camera.js';
@@ -7,6 +7,9 @@ import { unlock, sfx } from './sound.js';
 import { t, getLang, applyI18n, mountLanguagePicker, onLangChange } from './i18n.js';
 import { poseSVG, drawGhost } from './hint.js';
 import { createEffects, effectFor } from './effects.js';
+import { BodyTracker } from './bodyTracker.js';
+import { Steady, JAW_OPEN, handsCentre } from './body.js';
+import { drawSilhouette, toStage } from './silhouette.js';
 
 const $ = id => document.getElementById(id);
 
@@ -19,6 +22,45 @@ let lastTime = 0;
 let ending = null; // {titleKey, bodyKey, params} while the end screen shows
 const reader = new SealReader();
 const fx = createEffects($('fx'));
+
+// Body moves in camera mode: blowing fire (face), guarding (pose) and the
+// player's silhouette in the arena (segmentation). Each can be switched off.
+const body = new BodyTracker();
+const BODY_OPTIONS_KEY = 'seal-fighter.body';
+const options = loadOptions();
+const blow = new Steady(3); // mouth open for 3 frames in a row
+const poseGuard = new Steady(2);
+let poseGuarding = false;
+let keyGuarding = false; // Space held
+let lastHands = null; // the latest hand landmarks, for where jutsu start
+
+function loadOptions() {
+  const defaults = { face: true, pose: true, segment: true };
+  try {
+    return { ...defaults, ...JSON.parse(localStorage.getItem(BODY_OPTIONS_KEY) ?? '{}') };
+  } catch {
+    return defaults;
+  }
+}
+
+function saveOptions() {
+  try {
+    localStorage.setItem(BODY_OPTIONS_KEY, JSON.stringify(options));
+  } catch {
+    // Not saved; the choice still applies to this visit.
+  }
+}
+
+// Loads a body model in the background; the battle does not wait for it. If
+// it fails, that move falls back to its key and the player is told why.
+function enableBody(kind) {
+  if (!cameraStarted || !options[kind] || body.ready(kind)) return;
+  body.enable(kind).catch(error => {
+    options[kind] = false;
+    $(`opt${kind[0].toUpperCase()}${kind.slice(1)}`).checked = false;
+    setStatus(() => t('body.failed', { feature: t(`feature.${kind}`), error: error.message }));
+  });
+}
 
 const jutsuName = j => j.name[getLang()];
 const enemyName = e => t(`enemy.${e.id}`);
@@ -48,7 +90,7 @@ const canCast = j => battle.available.includes(j);
 // jutsu the player is furthest into; otherwise start 解 when caught, or the
 // best attack against this enemy that chakra allows.
 function hintTarget() {
-  if (!fighting()) return null;
+  if (!fighting() || battle.breath) return null;
   const options = JUTSU.filter(canCast);
   let best = null;
   let bestProgress = 0;
@@ -83,6 +125,7 @@ function renderScroll() {
       factor === 2 ? `<em>${t('tag.counter')}</em>` : '',
       factor === 0.5 ? `<em class="weak">${t('tag.weak')}</em>` : '',
       j.type === 'release' ? `<em>${t('tag.caughtOnly')}</em>` : '',
+      j.breath ? `<em class="breath">${t('tag.breath')}</em>` : '',
     ].join('');
     const classes = [
       factor === 2 ? 'strong' : '',
@@ -141,6 +184,27 @@ function renderBars() {
   document.body.classList.toggle('caught', battle.caught > 0);
   $('enemy').classList.toggle('stunned', battle.stunned > 0);
   document.body.classList.toggle('clone-ready', Boolean(battle.cloneReady));
+  renderBody();
+}
+
+function renderBody() {
+  const breathing = Boolean(battle.breath) && fighting();
+  $('breathPrompt').hidden = !breathing;
+  if (breathing) $('breathTime').style.width = `${(100 * battle.breath.left) / BREATH_SECONDS}%`;
+  document.body.classList.toggle('face-on', cameraOn && options.face && body.ready('face'));
+  document.body.classList.toggle('silhouette-on', cameraOn && options.segment && body.ready('segment'));
+  document.body.classList.toggle('guarding', Boolean(battle.guarding));
+  $('guardBadge').hidden = !battle.guarding;
+}
+
+// Where a jutsu starts on the stage: the player's hands (or mouth, for fire
+// breath) on the silhouette when it is shown, otherwise the bottom middle.
+function originFor(part) {
+  if (!document.body.classList.contains('silhouette-on')) return undefined;
+  const canvas = $('silhouette');
+  const box = { left: canvas.offsetLeft, top: canvas.offsetTop, width: canvas.offsetWidth, height: canvas.offsetHeight };
+  const point = part === 'mouth' ? body.latest.mouth : handsCentre(lastHands);
+  return point ? toStage(point, box) : { x: box.left + box.width / 2, y: box.top + box.height * 0.5 };
 }
 
 function renderRecent() {
@@ -179,12 +243,16 @@ function floatText(text, colour) {
 function onCast(ev) {
   const j = ev.jutsu;
   const enemy = battle.enemy;
-  fx.play(effectFor(j));
-  sfx.jutsu(j.type, ev.factor > 1);
+  fx.play(ev.breathed ? 'breathFire' : effectFor(j), { origin: originFor(ev.breathed ? 'mouth' : 'hands') });
+  if (ev.breathed) sfx.breath();
+  else sfx.jutsu(j.type, ev.factor > 1);
   if (j.type === 'attack') {
     flash($('enemy'), 'hurt');
     floatText(`−${ev.damage}`, ELEMENTS[j.element].colour);
-    say(() => t(ev.factor > 1 ? 'msg.strong' : ev.factor < 1 ? 'msg.weak' : 'msg.cast', { jutsu: jutsuName(j) }));
+    // A weak breath keeps the "too weak" message from breathFaded.
+    if (ev.breathed === false) return;
+    say(() => t(ev.breathed ? 'msg.breathed'
+      : ev.factor > 1 ? 'msg.strong' : ev.factor < 1 ? 'msg.weak' : 'msg.cast', { jutsu: jutsuName(j) }));
   } else if (j.type === 'heal') {
     floatText(`+${ev.healed}`, '#5fdc8a');
     say(() => t('msg.heal', { jutsu: jutsuName(j), n: ev.healed }));
@@ -209,6 +277,16 @@ function handle(events) {
       sfx.seal(Math.max(0, ...Object.values(ev.progress)));
     } else if (ev.type === 'cast') {
       onCast(ev);
+    } else if (ev.type === 'breathReady') {
+      sfx.inhale();
+      blow.reset();
+      say(() => t('msg.breathReady', { jutsu: jutsuName(ev.jutsu) }));
+    } else if (ev.type === 'breathFaded') {
+      say(() => t('msg.breathFaded', { jutsu: jutsuName(ev.jutsu) }));
+    } else if (ev.type === 'hit' && ev.guarded) {
+      sfx.guard();
+      fx.play('guard', { origin: originFor('hands') });
+      say(() => t('msg.guarded', { enemy: enemyName(enemy), n: ev.damage }));
     } else if (ev.type === 'noChakra') {
       sfx.fail();
       say(() => t('msg.noChakra', { need: ev.jutsu.chakra, have: Math.floor(ev.chakra) }));
@@ -256,8 +334,11 @@ function inputSeal(id) {
 
 let hintClock = 0;
 function frame(now) {
-  const dt = Math.min(0.1, (now - lastTime) / 1000);
+  // Capped so that returning to a hidden tab does not jump the battle ahead,
+  // but loose enough that timers keep real time on a slow computer.
+  const dt = Math.min(0.25, (now - lastTime) / 1000);
   lastTime = now;
+  battle.setGuard(keyGuarding || poseGuarding);
   handle(battle.tick(dt));
   renderBars();
   // Chakra changes which jutsu are affordable; refresh the scroll now and then.
@@ -270,7 +351,8 @@ function frame(now) {
   requestAnimationFrame(frame);
 }
 
-function onCameraFrame(features) {
+function onCameraFrame(features, result) {
+  lastHands = result?.landmarks?.length ? result.landmarks : null;
   const { prediction, locked } = reader.read(features, samples);
   const tooFar = prediction && prediction.distance > MAX_DISTANCE;
   $('guess').textContent = prediction && !tooFar && prediction.label !== 'none' ? sealById(prediction.label).name : '—';
@@ -281,6 +363,25 @@ function onCameraFrame(features) {
     lastLocked = locked;
     if (cameraOn && locked && locked !== 'none') inputSeal(locked);
   }
+  if (cameraOn) readBody();
+}
+
+function readBody() {
+  const video = $('cam');
+  const latest = body.update(video, {
+    face: options.face && Boolean(battle.breath),
+    pose: options.pose && fighting(),
+    segment: options.segment,
+  });
+  if (battle.breath && body.ready('face')) {
+    $('jawMeter').style.width = `${Math.min(1, latest.jaw / JAW_OPEN) * 100}%`;
+    if (blow.update(latest.jaw >= JAW_OPEN)) {
+      blow.reset();
+      handle(battle.breathe());
+    }
+  }
+  poseGuarding = options.pose && body.ready('pose') && poseGuard.update(latest.guard);
+  if (options.segment && body.ready('segment')) drawSilhouette($('silhouette'), video, latest.mask);
 }
 
 // The next seal's pose, faintly behind the player's hands.
@@ -319,6 +420,7 @@ async function beginWithCamera() {
       await startCamera({ video: $('cam'), canvas: $('view'), onFrame: onCameraFrame,
         onStatus: setStatus, drawOverlay: drawCameraHint });
       cameraStarted = true;
+      for (const kind of ['face', 'pose', 'segment']) enableBody(kind);
     } catch (error) {
       setStatus(() => t('status.cameraFailed', { error: error.message }));
       $('startCamera').disabled = false;
@@ -341,9 +443,36 @@ function beginWithKeys() {
 
 window.addEventListener('keydown', e => {
   if (!$('overlay').hidden) return;
+  if (e.code === 'Space') {
+    e.preventDefault(); // hold to guard, without scrolling the page
+    keyGuarding = true;
+    return;
+  }
+  if (e.key === 'f' || e.key === 'F') {
+    handle(battle.breathe());
+    return;
+  }
   const seal = SEALS.find(s => s.key === e.key && s.id !== 'none');
   if (seal) inputSeal(seal.id);
 });
+window.addEventListener('keyup', e => {
+  if (e.code === 'Space') keyGuarding = false;
+});
+// Letting go of the window should not leave the guard stuck on.
+window.addEventListener('blur', () => {
+  keyGuarding = false;
+});
+
+for (const kind of ['face', 'pose', 'segment']) {
+  const box = $(`opt${kind[0].toUpperCase()}${kind.slice(1)}`);
+  box.checked = options[kind];
+  box.addEventListener('change', () => {
+    options[kind] = box.checked;
+    saveOptions();
+    enableBody(kind);
+    renderBody();
+  });
+}
 
 $('startCamera').addEventListener('click', beginWithCamera);
 $('startKeys').addEventListener('click', beginWithKeys);
@@ -357,4 +486,4 @@ requestAnimationFrame(time => {
 });
 
 // Exposed for automated checks.
-window.sealFighter = { get battle() { return battle; }, inputSeal, fx };
+window.sealFighter = { get battle() { return battle; }, inputSeal, fx, body, options };

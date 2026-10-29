@@ -17,6 +17,12 @@ export const CHAKRA_PER_SECOND = 2;
 // An enemy's genjutsu wears off on its own after this long if not released.
 export const GENJUTSU_SECONDS = 10;
 const PAUSE_BETWEEN_ENEMIES = 2.5; // seconds
+// After the seals of a breath jutsu, the player has this long to blow.
+export const BREATH_SECONDS = 3;
+// A breath jutsu released without blowing comes out at this strength.
+const WEAK_BREATH = 0.5;
+// Guarding (both hands raised) takes this fraction of an attack's damage.
+const GUARD_FACTOR = 0.5;
 const MAX_RECENT = 8;
 // An attack pushes the enemy's charge back by this fraction; a
 // super-effective attack resets it.
@@ -48,6 +54,8 @@ export class Battle {
     this.stunned = 0; // seconds the enemy stays caught in your genjutsu
     this.caught = 0; // seconds you stay caught in the enemy's genjutsu
     this.cloneReady = false;
+    this.breath = null; // {jutsu, left} while waiting for the player to blow
+    this.guarding = false;
     this.pause = 0;
     this.state = 'fighting';
   }
@@ -85,8 +93,20 @@ export class Battle {
         this.recent = [];
         events.push({ type: 'genjutsuFaded' });
       }
-    } else {
+    } else if (!this.guarding) {
+      // Guarding has a price: chakra does not recover while your hands are up.
       this.chakra = Math.min(MAX_CHAKRA, this.chakra + CHAKRA_PER_SECOND * dt);
+    }
+
+    if (this.breath) {
+      this.breath.left -= dt;
+      if (this.breath.left <= 0) {
+        const { jutsu } = this.breath;
+        this.breath = null;
+        events.push({ type: 'breathFaded', jutsu },
+          ...this.attack(jutsu, { type: 'cast', jutsu, breathed: false }, WEAK_BREATH));
+        if (this.state !== 'fighting') return events;
+      }
     }
 
     if (this.stunned > 0) {
@@ -115,8 +135,9 @@ export class Battle {
       this.cloneReady = false;
       return [{ type: 'dodged' }];
     }
-    this.playerHp = Math.max(0, this.playerHp - e.damage);
-    const events = [{ type: 'hit', damage: e.damage, playerHp: this.playerHp }];
+    const damage = this.guarding ? Math.round(e.damage * GUARD_FACTOR) : e.damage;
+    this.playerHp = Math.max(0, this.playerHp - damage);
+    const events = [{ type: 'hit', damage, playerHp: this.playerHp, guarded: this.guarding }];
     if (this.playerHp === 0) {
       this.state = 'lost';
       events.push({ type: 'lost' });
@@ -127,7 +148,8 @@ export class Battle {
   // The player formed `sealId`. Returns events, including a cast when the
   // recent seals complete a jutsu.
   seal(sealId) {
-    if (this.state !== 'fighting' || sealId === 'none') return [];
+    // While a breath jutsu waits to be blown out, seals are ignored.
+    if (this.state !== 'fighting' || sealId === 'none' || this.breath) return [];
     this.recent = [...this.recent, sealId].slice(-MAX_RECENT);
     const events = [{ type: 'seal', seal: sealId, progress: this.progressByJutsu }];
     const done = completed(this.recent, this.available);
@@ -161,9 +183,29 @@ export class Battle {
       this.caught = 0;
       return [cast];
     }
+    if (jutsu.breath) {
+      this.breath = { jutsu, left: BREATH_SECONDS };
+      return [{ type: 'breathReady', jutsu, seconds: BREATH_SECONDS }];
+    }
+    return this.attack(jutsu, cast);
+  }
 
+  // The player hands are raised (pose) or the guard key is held.
+  setGuard(on) {
+    this.guarding = Boolean(on) && this.state === 'fighting';
+  }
+
+  // The player opened their mouth (or pressed the breath key) in time.
+  breathe() {
+    if (this.state !== 'fighting' || !this.breath) return [];
+    const { jutsu } = this.breath;
+    this.breath = null;
+    return this.attack(jutsu, { type: 'cast', jutsu, breathed: true });
+  }
+
+  attack(jutsu, cast, strength = 1) {
     const factor = effectiveness(jutsu.element, this.enemy.element);
-    const damage = Math.round(jutsu.power * factor);
+    const damage = Math.round(jutsu.power * factor * strength);
     this.enemy.hp = Math.max(0, this.enemy.hp - damage);
     this.charge = factor > 1 ? 0 : Math.max(0, this.charge - STAGGER);
     const events = [{ ...cast, damage, factor, enemyHp: this.enemy.hp }];

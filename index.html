@@ -30,7 +30,13 @@
 
       <div class="stage-area">
         <div id="enemy" class="enemy"><div class="eyes"></div></div>
+        <canvas id="silhouette" class="silhouette" width="320" height="240"></canvas>
         <canvas id="fx" class="fx"></canvas>
+        <div id="breathPrompt" class="breath-prompt" hidden>
+          <div class="breath-text"><span data-i18n="breath.prompt">張大口噴火！</span> <small data-i18n="breath.keys"></small></div>
+          <div class="bar breath-time"><div id="breathTime"></div></div>
+          <div class="bar jaw"><div id="jawMeter"></div></div>
+        </div>
         <div id="floater" class="floater"></div>
       </div>
 
@@ -38,6 +44,7 @@
 
       <div class="player-card">
         <span class="who" data-i18n="label.you">你</span>
+        <span id="guardBadge" class="guard-badge" data-i18n="label.guarding" hidden>格擋中</span>
         <div class="bars">
           <div class="bar hp player"><div id="playerHp"></div><span id="playerHpText"></span></div>
           <div class="bar chakra"><div id="chakra"></div><span id="chakraText"></span></div>
@@ -61,6 +68,7 @@
       <ol id="scroll" class="scroll"></ol>
       <p class="tip" data-i18n="tip.elements"></p>
       <p class="tip" data-i18n="tip.keys"></p>
+      <p class="tip" data-i18n="tip.body"></p>
     </aside>
   </main>
 
@@ -72,6 +80,13 @@
         <p data-i18n="intro.p2"></p>
         <p data-i18n="intro.p3"></p>
       </div>
+      <fieldset class="body-options">
+        <legend data-i18n="body.title">身體動作（鏡頭模式）</legend>
+        <label><input type="checkbox" id="optFace" checked> <span data-i18n="body.face"></span></label>
+        <label><input type="checkbox" id="optPose" checked> <span data-i18n="body.pose"></span></label>
+        <label><input type="checkbox" id="optSegment" checked> <span data-i18n="body.segment"></span></label>
+        <p class="tip" data-i18n="body.note"></p>
+      </fieldset>
       <div class="actions">
         <button id="startCamera" class="primary" data-i18n="start.camera">用鏡頭開始</button>
         <button id="startKeys" data-i18n="start.keys">淨係用鍵盤</button>

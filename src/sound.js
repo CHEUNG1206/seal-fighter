@@ -48,6 +48,17 @@ export const sfx = {
       notes([1568, 2093], 0.06, 0.3, { type: 'triangle', gain: 0.1 });
     }
   },
+  inhale() {
+    if (ctx) tone(180, 0, 0.6, { type: 'sine', gain: 0.08, slideTo: 420 });
+  },
+  breath() {
+    if (!ctx) return;
+    tone(90, 0, 0.9, { type: 'sawtooth', gain: 0.14, slideTo: 60 });
+    tone(140, 0.05, 0.8, { type: 'square', gain: 0.06, slideTo: 2200 });
+  },
+  guard() {
+    if (ctx) notes([1200, 1800], 0.04, 0.25, { type: 'triangle', gain: 0.1 });
+  },
   fail() {
     if (ctx) tone(110, 0, 0.3, { type: 'square', gain: 0.1 });
   },

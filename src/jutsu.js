@@ -21,18 +21,20 @@ export const ELEMENTS = {
 // charge), clone (dodge the next attack), release (break a genjutsu cast on
 // you; only works while you are caught in one).
 // power: damage for attacks, health for heals, seconds for genjutsu.
+// breath: the fire is breathed out, as in the series; after the seals the
+// player has to "blow" (open their mouth, or press a key) to release it.
 export const JUTSU = [
   { id: 'chidori', type: 'attack', element: 'lightning', seals: ['ox', 'hare', 'monkey'], chakra: 30, power: 30,
     name: { yue: '千鳥', en: 'Chidori', ja: '千鳥' } },
   { id: 'waterTrumpet', type: 'attack', element: 'water', seals: ['dragon', 'tiger', 'hare'], chakra: 25, power: 25,
     name: { yue: '水遁・水亂破', en: 'Water Release: Water Trumpet', ja: '水遁・水乱破' } },
-  { id: 'dragonFlame', type: 'attack', element: 'fire', seals: ['snake', 'dragon', 'hare', 'tiger'], chakra: 35, power: 35,
+  { id: 'dragonFlame', type: 'attack', element: 'fire', seals: ['snake', 'dragon', 'hare', 'tiger'], chakra: 35, power: 35, breath: true,
     name: { yue: '火遁・龍火之術', en: 'Fire Release: Dragon Flame Technique', ja: '火遁・龍火の術' } },
   { id: 'fangedPursuit', type: 'attack', element: 'earth', seals: ['tiger', 'snake', 'dragon', 'dog'], chakra: 35, power: 35,
     name: { yue: '通靈・土遁・追牙之術', en: 'Summoning: Earth Release: Fanged Pursuit', ja: '口寄せ・土遁・追牙の術' } },
   { id: 'breakthrough', type: 'attack', element: 'wind', seals: ['tiger', 'ox', 'dog', 'hare', 'snake'], chakra: 40, power: 40,
     name: { yue: '風遁・大突破', en: 'Wind Release: Great Breakthrough', ja: '風遁・大突破' } },
-  { id: 'fireball', type: 'attack', element: 'fire', seals: ['snake', 'ram', 'monkey', 'boar', 'horse', 'tiger'], chakra: 50, power: 55,
+  { id: 'fireball', type: 'attack', element: 'fire', seals: ['snake', 'ram', 'monkey', 'boar', 'horse', 'tiger'], chakra: 50, power: 55, breath: true,
     name: { yue: '火遁・豪火球之術', en: 'Fire Release: Great Fireball Technique', ja: '火遁・豪火球の術' } },
   { id: 'waterShark', type: 'attack', element: 'water', seals: ['tiger', 'ox', 'dragon', 'hare', 'bird', 'dragon', 'ram'], chakra: 60, power: 65,
     name: { yue: '水遁・水鮫彈之術', en: 'Water Release: Water Shark Bullet', ja: '水遁・水鮫弾の術' } },

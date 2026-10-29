@@ -14,17 +14,33 @@ export const MAX_DISTANCE = 4.0;
 // The player's own samples count as this much closer than bundled ones.
 const MINE_WEIGHT = 0.7;
 
-// Starts the camera and calls onFrame(features) on every video frame, where
-// features is null when no hand is visible. drawOverlay(ctx), if given, draws
-// over the video before the hand points, e.g. a seal hint. Throws if the
-// model or the camera cannot be started.
+let visionLoading = null;
+
+// The MediaPipe vision library and its WebAssembly files, loaded once and
+// shared by every model (hands here, face/pose/segmentation in bodyTracker.js).
+// Imported on demand rather than at the top so pages still show their
+// controls and an error message when the CDN cannot be reached.
+export function loadVision() {
+  visionLoading ??= (async () => {
+    const lib = await import(`${VISION}/vision_bundle.mjs`);
+    const files = await lib.FilesetResolver.forVisionTasks(`${VISION}/wasm`);
+    return { lib, files };
+  })().catch(error => {
+    visionLoading = null; // let a later attempt try again
+    throw error;
+  });
+  return visionLoading;
+}
+
+// Starts the camera and calls onFrame(features, result) on every video frame:
+// features is null when no hand is visible, result is MediaPipe's raw hand
+// result. drawOverlay(ctx), if given, draws over the video before the hand
+// points, e.g. a seal hint. Throws if the model or the camera cannot be
+// started.
 export async function startCamera({ video, canvas, onFrame, onStatus = () => {}, drawOverlay = null }) {
   onStatus(t('status.loadingModel'));
-  // Imported here rather than at the top so pages still show their controls
-  // and an error message when the CDN cannot be reached.
-  const { FilesetResolver, HandLandmarker } = await import(`${VISION}/vision_bundle.mjs`);
-  const vision = await FilesetResolver.forVisionTasks(`${VISION}/wasm`);
-  const landmarker = await HandLandmarker.createFromOptions(vision, {
+  const { lib, files } = await loadVision();
+  const landmarker = await lib.HandLandmarker.createFromOptions(files, {
     baseOptions: { modelAssetPath: MODEL },
     runningMode: 'VIDEO',
     numHands: 2,
@@ -37,7 +53,7 @@ export async function startCamera({ video, canvas, onFrame, onStatus = () => {},
   function loop() {
     const result = landmarker.detectForVideo(video, performance.now());
     drawHands(ctx, video, result, drawOverlay);
-    onFrame(toFeatures(result.landmarks, result.handedness));
+    onFrame(toFeatures(result.landmarks, result.handedness), result);
     requestAnimationFrame(loop);
   }
   loop();

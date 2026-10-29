@@ -321,3 +321,60 @@ body.caught .scroll li:not(.disabled) { border-color: #fff; box-shadow: 0 0 12px
 /* keep the header (and its language buttons) usable above the start/end screen */
 .game header { position: relative; z-index: 20; }
 .overlay { z-index: 10; }
+
+/* ---------- body moves: silhouette, breath, guard ---------- */
+.silhouette {
+  position: absolute;
+  left: 2%;
+  bottom: 0;
+  height: 70%;
+  width: auto;
+  aspect-ratio: 4 / 3;
+  pointer-events: none;
+  opacity: 0.9;
+  filter: drop-shadow(0 0 8px rgba(120, 200, 255, 0.7));
+  display: none;
+}
+body.silhouette-on .silhouette { display: block; }
+
+.breath-prompt {
+  position: absolute;
+  left: 50%;
+  bottom: 12px;
+  transform: translateX(-50%);
+  width: min(320px, 80%);
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: rgba(40, 10, 0, 0.75);
+  border: 1px solid #ff7a1a;
+  text-align: center;
+  animation: pulse 0.5s infinite alternate;
+}
+.breath-text { font-weight: bold; color: #ffd27a; }
+.breath-text small { color: var(--muted); font-weight: normal; }
+.bar.breath-time > div { background: #ff7a1a; transition: none; }
+.bar.jaw { display: none; height: 10px; }
+.bar.jaw > div { background: #ffe14a; transition: none; width: 0; }
+body.face-on .bar.jaw { display: block; }
+
+.guard-badge {
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: #78c8ff;
+  color: #06243a;
+  font-weight: bold;
+}
+body.guarding .player-card { box-shadow: 0 0 0 2px #78c8ff, 0 0 18px rgba(120, 200, 255, 0.5); }
+
+.body-options {
+  margin: 12px 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px 12px;
+  display: grid;
+  gap: 4px;
+}
+.body-options legend { color: var(--muted); font-size: 0.85rem; padding: 0 4px; }
+.body-options .tip { margin: 4px 0 0; }
+.scroll em.breath { color: #ffb020; }
