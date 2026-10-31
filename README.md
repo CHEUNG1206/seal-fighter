@@ -11,6 +11,9 @@ reacts, and you answer with the next sequence.
 **Play it:** <https://cheung1206.github.io/seal-fighter/> (Chrome or Edge;
 allow the camera, or choose the keyboard).
 
+### Demo
+https://github.com/user-attachments/assets/59744c55-358c-43c4-8bd3-845be5352641
+
 ![The battle in keyboard mode: the enemy, health and chakra, the jutsu scroll
 with the key under each seal, and the next-seal hint](docs/screenshot.png)
 
@@ -271,8 +274,7 @@ tools/make-poses.mjs bundled samples → src/poses.js
 test/                unit tests (node --test)
 PROCESS.md           how AI was used
 ```
-### Demo
-https://github.com/user-attachments/assets/59744c55-358c-43c4-8bd3-845be5352641
+
 
 
 
