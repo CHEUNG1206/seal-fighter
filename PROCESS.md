@@ -1,17 +1,13 @@
 # Process
 
-<!-- Draft written with Claude Code from my project notes and our chat.
-Read it, correct anything that is not how I remember it, and put it in my own
-words before submitting. Delete this comment afterwards. -->
-
 ## Starting idea
 
 I wanted a game where the input is something you act out, not a button: forming
 Naruto-style hand seals in front of a webcam. Week 6's browser sketches showed a
 game could run in a web page, and MediaPipe's in-browser hand tracking made
-hand seals possible without a server (Week 8 later covered MediaPipe in class). The loop: the enemy charges, I form a jutsu's seals in order, the
-jutsu hits, and I watch the enemy's charge and my chakra to decide what to do
-next.
+hand seals possible without a server (Week 8 later covered MediaPipe in class).
+The loop: the enemy charges, I form a jutsu's seals in order, the jutsu hits,
+and I watch the enemy's charge and my chakra to decide what to do next.
 
 The first version only recognised seals, to prove the hard part worked before
 building a game around it.
@@ -40,31 +36,42 @@ documented the hard seals.
 
 ## User trial
 
-I asked a friend to try the game. <!-- Add: did he try it before I explained
-anything? What did he try first, and where did he hesitate? -->
+I asked a friend to try the game. Before he started I only told him briefly how
+to play: form the seals shown on the scroll in front of the camera. I did not
+explain how the recognition works.
 
-His feedback:
+**What I observed.** He followed the hand-pose hint carefully, but the game
+often recognised his pose as a different seal, so the jutsu he was aiming for
+did not come out. This matches what I had measured: the bundled samples are
+only my hands, and on another person's hands they recognise 63.6% of seal
+frames, with some seals (未, 巳) almost never recognised.
+
+**His feedback afterwards:**
 
 1. Recognition quality needed to improve.
 2. The hint should show the jutsu's pose with both hands clearly.
 3. In keyboard mode it was not clear which key belongs to each step of a jutsu.
 
-What I changed:
+**What I changed:**
 
 - **Keys:** every seal on the scroll and in the recent-seals row now shows its
   key underneath, and the next-seal card says "press 4". Keyboard mode makes
   the keys larger.
 - **Both hands in the hint:** the hint drawing is larger and redrawn from my own
-  samples. The camera view now colours the tracked hands the same way as the
-  hint (orange and blue), and a line explains that both are mirrored, so he can
-  match orange to orange and blue to blue.
-- **Recognition:** I could not make the model itself much better before the
-  deadline, so I made it easier to work with: the camera panel says whether it
-  sees no hands, one or both, a bar fills while a seal is being held, and after
-  3 seconds without hands it suggests more light or moving closer. I also
-  changed the distance limit (above) and kept the keyboard as a fallback.
+  samples, so it shows the poses the game actually knows. The camera view now
+  colours the tracked hands the same way as the hint (orange and blue), and a
+  line explains that both are mirrored: match orange to orange and blue to blue.
+- **Recognition:** when the game read the wrong seal, he could not tell why. The
+  camera panel now says whether it sees no hands, one or both, a bar fills
+  while a seal is being held, and after 3 seconds without hands it suggests
+  more light or moving closer. I also loosened the distance limit from 4 to 6,
+  which recognised more of another person's seals (60.5% to 63.6%).
 
-<!-- Add: did you ask him to try again? Did it help? -->
+**What I kept, and why.** I did not change the recognition method itself before
+the deadline. The real fix is more varied samples, so the README now says
+plainly that recognition works best after recording your own hands in the
+trainer, and the keyboard mode stays as a way to play when the camera gets a
+seal wrong.
 
 ## How I used AI
 
@@ -98,7 +105,8 @@ samples it used to measure accuracy.
 ## What I would do next
 
 - Record samples from more people (with their permission) so the defaults work
-  for more hands.
+  for more hands, and ask my friend to record his own seals in the trainer and
+  try again, to see how much that helps.
 - Replace the placeholder enemies with my own pixel art.
 - An experimental branch, `feature/body-input`, adds opening the mouth to
   breathe fire, raising both hands to guard, and the player's silhouette in the
