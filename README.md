@@ -8,9 +8,22 @@ reacts, and you answer with the next sequence.
 > or endorsed by the series' creators. Jutsu names and seal sequences follow
 > the series (sources below). Enemies, art, effects and sounds are original.
 
+**Play it:** <https://cheung1206.github.io/seal-fighter/> (Chrome or Edge;
+allow the camera, or choose the keyboard).
+
+![The battle in keyboard mode: the enemy, health and chakra, the jutsu scroll
+with the key under each seal, and the next-seal hint](docs/screenshot.png)
+
 **Status: playable.** Three enemies, eleven jutsu (attack, healing, genjutsu,
 clone, release), chakra, webcam or keyboard, in 粵語, English and 日本語.
 A separate trainer page lets you record your own hands for better recognition.
+
+## Who it is for
+
+Anime fans and anyone curious about camera-controlled games who want to act out
+hand seals rather than press buttons. It is built for one player at a laptop
+with a webcam. A keyboard mode gives the same game to players without a camera,
+or whose hands the tracker struggles with.
 
 ## How to play
 
@@ -45,13 +58,30 @@ A separate trainer page lets you record your own hands for better recognition.
 | 分身術 Clone | clone | 未 巳 寅 | 20 | dodge the next attack |
 | 解 Release | release | 寅 | 10 | break the enemy's genjutsu |
 
-Many sequences use 寅, 未 and 辰, which the bundled samples recognise poorly
-(see [`samples/README.md`](samples/README.md)). Recording your own hands in the
-trainer helps most for these. A short sequence that appears inside a longer
-one would fire early, so the tests check that none does.
+A short sequence that appears inside a longer one would fire early, so the
+tests check that none does.
 
-**Keyboard:** 1 子 · 2 丑 · 3 寅 · 4 卯 · 5 辰 · 6 巳 · 7 午 · 8 未 · 9 申 · 0 酉 · `-` 戌 · `=` 亥.
-The keyboard also works in camera mode.
+### Keyboard mode
+
+Each seal has a key on the top row. The scroll shows the key under every seal,
+and the next-seal card says which key to press.
+
+| 子 | 丑 | 寅 | 卯 | 辰 | 巳 | 午 | 未 | 申 | 酉 | 戌 | 亥 |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| `1` | `2` | `3` | `4` | `5` | `6` | `7` | `8` | `9` | `0` | `-` | `=` |
+
+Example: 千鳥 is 丑 卯 申, so press `2` `4` `9`. A wrong key does not need
+clearing; start the sequence again. Switch the computer's input method to
+English first, as a Chinese input method can swallow the keys. The keyboard
+also works in camera mode, to fill in a seal the camera misses.
+
+### Camera feedback
+
+Under the camera view the game says whether it sees no hands, one hand or both,
+and a bar fills while a seal is being held; it counts when the bar is full
+(8 steady frames). After 3 seconds without hands it suggests more light or
+moving closer. The seal hints are drawn mirrored, like the camera view, with
+the same colours as the tracked hands: match orange to orange and blue to blue.
 
 With the camera, a seal counts once when it locks. To use the same seal twice
 in a row (水鮫彈 has 辰 twice, but not in a row), move your hands out of it first.
@@ -79,8 +109,9 @@ browser. Tests check that all three languages have every key.
 
 The hint drawings are hand skeletons built from the bundled landmark samples
 (`tools/make-poses.mjs` picks the most typical two-hand sample of each seal),
-so they are original drawings, not copied pictures. Interlocked fingers confuse
-the hand tracker, so 子, 辰 and 未 look messier than the others.
+so they are original drawings of the author's own hands, not copied pictures.
+Interlocked fingers confuse the hand tracker, so some (子, 寅) look messier than
+the others. `node tools/make-poses.mjs` redraws them after the samples change.
 
 Each jutsu plays a canvas effect (`src/effects.js`): lightning bolts, a
 fireball and explosion, a water spiral, wind blades with leaves, rock spikes,
@@ -146,9 +177,9 @@ The twelve seals, keys in brackets:
 午 Horse (7) · 未 Ram (8) · 申 Monkey (9) · 酉 Bird (0) · 戌 Dog (-) · 亥 Boar (=) ·
 and 無 (`) for relaxed hands that are *not* a seal.
 
-The page starts with 1,851 bundled samples (see
-[`samples/README.md`](samples/README.md) for where they come from and how
-accurate they are). They are one person's hands, so adding your own helps:
+The page starts with 780 bundled samples of the author's hands (see
+[`samples/README.md`](samples/README.md) for how they were recorded and how
+accurate they are on another person). Adding your own helps most:
 
 1. Press a seal's key (or click it).
 2. Hold the pose and press **Space**. It records 30 samples in about 3 seconds.
@@ -178,6 +209,41 @@ another, that all three languages are complete, sequence matching,
 normalising, hand-by-hand comparison, the stabiliser and sample import/export,
 using fake landmarks (no camera needed).
 
+## Known limitations
+
+- **Recognition is per frame and imperfect.** With the bundled samples (one
+  person's hands), 63.6% of another person's seal frames were recognised;
+  未 (4%) and 巳 (8%) were the hardest, 午, 戌 and 酉 the easiest. Recording your
+  own samples in the trainer is the best fix. The keyboard always works.
+- Interlocked fingers are hard for the hand tracker: it often sees two hands as
+  one. Good light, a plain background and both hands in view help.
+- Relaxed hands are sometimes read as a seal. A jutsu needs the right order,
+  so a stray seal rarely casts anything.
+- The hand model and MediaPipe library load from Google's servers and
+  jsDelivr. Without them the camera mode reports the error and the keyboard
+  mode still works.
+- Tested by the author on Windows and in headless Chromium; Safari and Firefox
+  were not tried.
+- Jutsu names and seal sequences come from a fan wiki and a community
+  repository, not an official source (see above).
+
+## Credits
+
+- [MediaPipe Tasks Vision](https://ai.google.dev/edge/mediapipe/solutions/guide)
+  and its Hand Landmarker model, by Google (Apache License 2.0), loaded from
+  jsDelivr and Google's model storage.
+- Seal sequences for 豪火球, 龍火, 水乱破, 水鮫弾, 追牙 and 分身 from
+  `setting/jutsu.csv` in [Kazuhito00/NARUTO-HandSignDetection](https://github.com/Kazuhito00/NARUTO-HandSignDetection)
+  (MIT licence); the others from the fan wikis listed above.
+- Bundled samples: recorded by the author. An earlier version used landmarks
+  extracted from the [Naruto Hand Sign Dataset](https://www.kaggle.com/datasets/vikranthkanumuru/naruto-hand-sign-dataset)
+  (Vikranth Kanumuru); they were removed because the dataset's licence is not
+  stated. Its photos were used only to measure accuracy on another person.
+- Code, effects, synthesised sounds and placeholder enemy art are original to
+  this project, written with Claude Code as a coding assistant (see
+  [`PROCESS.md`](PROCESS.md)). No SD5913 course example code is reused.
+- *Naruto* and its jutsu names belong to their creators; this is a fan project.
+
 ## Files
 
 ```
@@ -199,6 +265,7 @@ src/knn.js           hand-by-hand nearest-neighbour vote and stabiliser
 src/samples.js       saving, loading, import/export
 src/seals.js         the twelve seals and folder-name aliases
 samples/             bundled samples and where they come from
+docs/                screenshot
 tools/extract.*      photo folder → samples
 tools/make-poses.mjs bundled samples → src/poses.js
 test/                unit tests (node --test)
