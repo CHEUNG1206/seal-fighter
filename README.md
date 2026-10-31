@@ -271,3 +271,9 @@ tools/make-poses.mjs bundled samples → src/poses.js
 test/                unit tests (node --test)
 PROCESS.md           how AI was used
 ```
+### Demo
+https://github.com/user-attachments/assets/59744c55-358c-43c4-8bd3-845be5352641
+
+
+
+
