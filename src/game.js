@@ -67,8 +67,13 @@ function hintTarget() {
 
 // ---------- drawing ----------
 
+// Each seal with the key that forms it, so keyboard players can read a jutsu
+// straight off the scroll.
 function sealGlyphs(ids, matched = 0) {
-  return ids.map((id, i) => `<span class="glyph${i < matched ? ' done' : ''}">${sealById(id).name}</span>`).join('');
+  return ids.map((id, i) => {
+    const seal = sealById(id);
+    return `<span class="glyph${i < matched ? ' done' : ''}">${seal.name}<kbd>${seal.key}</kbd></span>`;
+  }).join('');
 }
 
 function renderScroll() {
@@ -108,10 +113,11 @@ function renderHint() {
   const seal = sealById(target.seal);
   $('hint').innerHTML = `<div class="hint-label">${t('label.next')}</div>
     <div class="hint-body">
-      <span class="hint-glyph">${seal.name}</span>
-      ${poseSVG(seal.id, 96)}
+      <span class="hint-glyph">${seal.name}<kbd class="hint-key">${t('hint.press', { key: seal.key })}</kbd></span>
+      ${poseSVG(seal.id, 128)}
     </div>
-    <div class="hint-meta">${t(`animal.${seal.id}`)}<br>${t('label.for', { jutsu: jutsuName(target.jutsu) })}</div>`;
+    <div class="hint-meta">${t(`animal.${seal.id}`)} · ${t('label.for', { jutsu: jutsuName(target.jutsu) })}</div>
+    <div class="hint-mirror">${t('hint.mirror')}</div>`;
 }
 
 function renderEnemy() {
@@ -270,8 +276,23 @@ function frame(now) {
   requestAnimationFrame(frame);
 }
 
+let handsMissingSince = 0;
+
+// What the camera sees right now, so the player knows whether to move closer,
+// bring in the second hand, or just hold still.
+function showTracking(features, hold, now = performance.now()) {
+  const hands = !features ? 0 : features[87] > 0 ? 2 : 1;
+  if (hands) handsMissingSince = 0;
+  else handsMissingSince ||= now;
+  const lost = hands === 0 && now - handsMissingSince > 3000;
+  $('trackText').textContent = lost ? t('track.lost') : t(['track.none', 'track.one', 'track.two'][hands]);
+  $('track').className = `track hands-${hands}${lost ? ' lost' : ''}`;
+  $('holdBar').style.width = `${Math.round(hold * 100)}%`;
+}
+
 function onCameraFrame(features) {
-  const { prediction, locked } = reader.read(features, samples);
+  const { prediction, locked, hold } = reader.read(features, samples);
+  showTracking(features, hold);
   const tooFar = prediction && prediction.distance > MAX_DISTANCE;
   $('guess').textContent = prediction && !tooFar && prediction.label !== 'none' ? sealById(prediction.label).name : '—';
   $('guess').classList.toggle('locked', Boolean(locked && locked !== 'none'));
@@ -327,6 +348,7 @@ async function beginWithCamera() {
   }
   cameraOn = true;
   document.body.classList.add('camera-on');
+  document.body.classList.remove('keys-on');
   setStatus(() => t(samples.length ? 'status.camera' : 'status.noSamples'));
   begin();
 }
@@ -335,6 +357,7 @@ function beginWithKeys() {
   unlock();
   cameraOn = false;
   document.body.classList.remove('camera-on');
+  document.body.classList.add('keys-on');
   setStatus(() => t('status.keys'));
   begin();
 }

@@ -8,9 +8,10 @@ const MODEL = 'https://storage.googleapis.com/mediapipe-models/hand_landmarker/h
 
 // Poses further than this from every sample are treated as "not a seal".
 // It only catches poses far from any seal, such as open hands (7 or more);
-// relaxed hands near a seal need recorded 無 samples. A tighter limit
-// rejected too many real seals from a new player's hands.
-export const MAX_DISTANCE = 4.0;
+// relaxed hands are recognised by the bundled 無 samples instead. With the
+// author's 780 samples, a limit of 4 rejected 7% more of another person's
+// correct seals than 6 did (60.5% vs 63.6% correct).
+export const MAX_DISTANCE = 6.0;
 // The player's own samples count as this much closer than bundled ones.
 const MINE_WEIGHT = 0.7;
 
@@ -56,9 +57,11 @@ function drawHands(ctx, video, result, drawOverlay) {
     drawOverlay(ctx);
     ctx.restore();
   }
-  const colours = ['#ff7a1a', '#3fc1ff'];
+  // Coloured by MediaPipe's left/right label, the same way the seal hints are
+  // drawn, so the player can match orange to orange and blue to blue.
   result.landmarks.forEach((hand, i) => {
-    ctx.fillStyle = colours[i % 2];
+    const label = result.handedness?.[i]?.[0]?.categoryName;
+    ctx.fillStyle = label === 'Right' ? '#3fc1ff' : '#ff7a1a';
     for (const p of hand) ctx.fillRect(p.x * w - 3, p.y * h - 3, 6, 6);
   });
   ctx.restore();
@@ -70,10 +73,14 @@ export class SealReader {
     this.stabiliser = new Stabiliser({ maxDistance: MAX_DISTANCE });
   }
 
-  // Returns {prediction, locked}: the raw nearest-neighbour answer for this
-  // frame, and the seal that has held steady long enough to count (or null).
+  // Returns {prediction, locked, hold}: the raw nearest-neighbour answer for
+  // this frame, the seal that has held steady long enough to count (or null),
+  // and how far (0–1) the current seal is towards counting.
   read(features, samples) {
     const prediction = classify(features, samples, { mineWeight: MINE_WEIGHT });
-    return { prediction, locked: this.stabiliser.update(prediction) };
+    const locked = this.stabiliser.update(prediction);
+    const { candidate, streak, frames } = this.stabiliser;
+    const hold = candidate && candidate !== 'none' && candidate !== locked ? Math.min(1, streak / frames) : 0;
+    return { prediction, locked, hold };
   }
 }

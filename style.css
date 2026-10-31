@@ -321,3 +321,38 @@ body.caught .scroll li:not(.disabled) { border-color: #fff; box-shadow: 0 0 12px
 /* keep the header (and its language buttons) usable above the start/end screen */
 .game header { position: relative; z-index: 20; }
 .overlay { z-index: 10; }
+
+/* ---------- key labels, tracking (user trial) ---------- */
+/* Every seal shows the key that forms it, underneath; bigger in keyboard mode. */
+.recent .glyph, .seq .glyph {
+  flex-direction: column;
+  height: auto;
+  padding: 2px 0 3px;
+  line-height: 1.1;
+  display: inline-flex;
+  align-items: center;
+}
+.glyph kbd {
+  margin-top: 2px;
+  padding: 0 4px;
+  font-size: 0.62rem;
+  line-height: 1.3;
+  background: #2a2a34;
+  color: var(--muted);
+}
+.keys-on .glyph kbd { font-size: 0.78rem; color: #fff; background: #3a3a48; border-color: #6a6a7a; }
+.glyph.done kbd { background: #1a0d00; color: var(--accent); border-color: #1a0d00; }
+
+.hint-glyph { display: grid; justify-items: center; gap: 4px; }
+.hint-key { font-size: 0.8rem; color: #fff; background: #3a3a48; }
+.hint-mirror { font-size: 0.7rem; color: var(--muted); max-width: 220px; text-align: center; }
+
+.track { display: none; margin-top: 6px; font-size: 0.85rem; }
+.camera-on .track { display: block; }
+.track.hands-0 { color: #ff6a7a; }
+.track.hands-1 { color: #ffd27a; }
+.track.hands-2 { color: #5fdc8a; }
+.track.lost { font-weight: bold; }
+.bar.hold { height: 8px; margin-top: 4px; }
+.bar.hold > div { width: 0; background: var(--accent); transition: none; }
+.scroll .seq .glyph { height: auto; min-height: 1.9rem; }
